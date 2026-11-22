@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { DEFAULT_OS_CONFIG } from './osDefaults';
 import {
   buildOsSourceZip,
@@ -211,3 +212,34 @@ test('buildOsSourceZip produces a valid non-empty zip archive blob', async () =>
   const blob = await buildOsSourceZip(DEFAULT_OS_CONFIG);
   assert.ok(blob.size > 5000);
 });
+
+test('all generated NixOS shell scripts pass bash -n syntax check and CI uses cache.nixos.org cleanly', () => {
+  const files = generateOsRepositoryFiles(DEFAULT_OS_CONFIG);
+  const nixCfg = files.find((f) => f.path === 'nixos/configuration.nix')?.content ?? '';
+  const workflow = files.find((f) => f.path === '.github/workflows/build-nixos.yml')?.content ?? '';
+
+  assert.doesNotMatch(workflow, /magic-nix-cache-action/);
+  assert.match(workflow, /--option substituters "https:\/\/cache\.nixos\.org"/);
+
+  const q2 = "''";
+  const scriptRe = new RegExp(`pkgs\\.writeShellScriptBin\\s+"([^"]+)"\\s+${q2}\\n([\\s\\S]*?)\\n\\s*${q2};`, 'g');
+  let match: RegExpExecArray | null;
+  let checked = 0;
+
+  while ((match = scriptRe.exec(nixCfg)) !== null) {
+    checked++;
+    const name = match[1];
+    const body = match[2]
+      .replace(/''\$/g, '$')
+      .replace(/'''/g, "''");
+    const res = spawnSync('bash', ['-n'], { input: body, encoding: 'utf8' });
+    assert.equal(
+      res.status,
+      0,
+      `Shell script ${name} failed bash -n syntax check:\n${res.stderr}`,
+    );
+  }
+
+  assert.ok(checked >= 15, `Expected at least 15 generated shell scripts, checked ${checked}`);
+});
+

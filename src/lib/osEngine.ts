@@ -1932,7 +1932,7 @@ fi
 if [[ -n "$CFG_KEYMAP" && "$CFG_KEYMAP" =~ ^[a-z]{2,8}$ ]]; then
   loadkeys "$CFG_KEYMAP" 2>/dev/null || true
   if [[ -f "/home/\${TARGET_USER}/.config/niri/config.kdl" ]]; then
-    sed -i -E "s/xkb \\{ layout \"[^\"]+\"; \\}/xkb { layout \"\${CFG_KEYMAP}\"; }/" "/home/\${TARGET_USER}/.config/niri/config.kdl" 2>/dev/null || true
+    sed -i -E 's/(xkb \\{ layout ")[^"]+("; \\})/\\1'"\${CFG_KEYMAP}"'\\2/' "/home/\${TARGET_USER}/.config/niri/config.kdl" 2>/dev/null || true
   fi
 fi
 
@@ -2561,17 +2561,17 @@ jobs:
       - name: Install Determinate Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Enable Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
-
       - name: Build declarative Monolith NixOS Live ISO (${config.nixSystem.channel} + Niri + zstd)
         id: meta
         run: |
           mkdir -p out release-assets
           nix build ./nixos#packages.x86_64-linux.iso \\
             --cores 0 --max-jobs auto \\
-            --option max-substitution-jobs 32 \\
-            --option http-connections 64 \\
+            --option substituters "https://cache.nixos.org" \\
+            --option max-substitution-jobs 16 \\
+            --option http-connections 25 \\
+            --option connect-timeout 15 \\
+            --option fallback true \\
             --print-build-logs
           RAW_ISO=$(ls -1 result/iso/*.iso | head -n 1)
           ISO_FILE="monolith-nixos-$(date +%Y.%m.%d)-x86_64.iso"

@@ -1253,7 +1253,7 @@ fi
 if [[ -n "$CFG_KEYMAP" && "$CFG_KEYMAP" =~ ^[a-z]{2,8}$ ]]; then
   loadkeys "$CFG_KEYMAP" 2>/dev/null || true
   if [[ -f "/home/''${TARGET_USER}/.config/niri/config.kdl" ]]; then
-    sed -i -E "s/xkb \{ layout "[^"]+"; \}/xkb { layout "''${CFG_KEYMAP}"; }/" "/home/''${TARGET_USER}/.config/niri/config.kdl" 2>/dev/null || true
+    sed -i -E 's/(xkb \{ layout ")[^"]+("; \})/\1'"''${CFG_KEYMAP}"'\2/' "/home/''${TARGET_USER}/.config/niri/config.kdl" 2>/dev/null || true
   fi
 fi
 
