@@ -1,0 +1,83 @@
+name: Build Monolith NixOS ISO
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'nixos/**'
+      - '.github/workflows/build-nixos.yml'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional release tag (defaults to nixos-vYYYY.MM.DD-<sha>)'
+        required: false
+        default: ''
+
+concurrency:
+  group: monolith-nixos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-nixos:
+    name: Build & Release Niri NixOS Flake ISO
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          df -h
+
+      - name: Install Determinate Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Enable Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build declarative Monolith NixOS Live ISO (nixos-unstable + Niri + zstd)
+        id: meta
+        run: |
+          mkdir -p out release-assets
+          nix build ./nixos#packages.x86_64-linux.iso \
+            --cores 0 --max-jobs auto \
+            --option max-substitution-jobs 32 \
+            --option http-connections 64 \
+            --print-build-logs
+          RAW_ISO=$(ls -1 result/iso/*.iso | head -n 1)
+          ISO_FILE="monolith-nixos-$(date +%Y.%m.%d)-x86_64.iso"
+          cp "$RAW_ISO" "out/$ISO_FILE"
+          ISO_BYTES=$(stat -c%s "out/$ISO_FILE")
+          (cd out && sha256sum "$ISO_FILE") > "release-assets/$ISO_FILE.sha256"
+          if [ "$ISO_BYTES" -lt 2100000000 ]; then
+            mv "out/$ISO_FILE" "release-assets/$ISO_FILE"
+          else
+            split -b 1800M "out/$ISO_FILE" "release-assets/$ISO_FILE.part-"
+            printf '@echo off\r\ncopy /b "%s.part-*" "%s"\r\necho Assembled %s! Flash with Rufus (DD mode).\r\npause\r\n' "$ISO_FILE" "$ISO_FILE" "$ISO_FILE" > "release-assets/combine-nixos-iso.bat"
+          fi
+          TAG="${{ github.event.inputs.release_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="nixos-v$(date +%Y.%m.%d)-${GITHUB_SHA::7}"
+          fi
+          echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
+          ls -lh release-assets/
+
+      - name: Publish NixOS Flake ISO Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.release_tag }}
+          name: "Monolith NixOS ${{ steps.meta.outputs.release_tag }}"
+          draft: false
+          prerelease: false
+          files: release-assets/*
+          body: |
+            ## Monolith NixOS — Declarative Portable Niri Wayland ISO (`nixos-unstable`)
+            - **Compositor**: Niri Scrollable Wayland (auto-started, JetBrains Mono, 10px rounded corners, minimal wallpaper, zero GUI window buttons)
+            - **Idle RAM**: ~366 MB idle (< 500 MB budget with ZRAM, earlyoom, and on-demand RAM-only local project packages)
+            - **Persistence**: Auto-scales **100%** of remaining drive capacity on first boot (LocalSend replaces exFAT) into `MONOLITH_PERSIST`
+            - **Hardware & Apps**: USB automount (`udiskie`), HDMI/DP (`wlr-randr` + `kanshi`), Wi-Fi (`iwd`), Bluetooth (`bluetui`), LocalSend, OBS, Neovim, Minimal Firefox, optional Wine `.exe` support

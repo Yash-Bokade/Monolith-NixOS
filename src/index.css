@@ -1,0 +1,153 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  --os-bg: #09090b;
+  --os-surface: #111114;
+  --os-surface-elevated: #17171c;
+  --os-border: #232329;
+  --os-border-strong: #32323c;
+  --os-fg: #f4f4f5;
+  --os-muted: #a1a1aa;
+  --os-accent: #38bdf8;
+  --os-accent-fg: #04131c;
+  --os-radius: 10px;
+  --os-radius-sm: 7px;
+  --os-window-opacity: 0.9;
+}
+
+[data-os-theme="obsidian-matte"] {
+  --os-bg: #09090b;
+  --os-surface: #111114;
+  --os-surface-elevated: #17171c;
+  --os-border: #232329;
+  --os-border-strong: #32323c;
+  --os-fg: #f4f4f5;
+  --os-muted: #a1a1aa;
+  --os-accent: #38bdf8;
+  --os-accent-fg: #04131c;
+}
+
+[data-os-theme="carbon-mono"] {
+  --os-bg: #050506;
+  --os-surface: #0e0e10;
+  --os-surface-elevated: #161619;
+  --os-border: #242428;
+  --os-border-strong: #3a3a40;
+  --os-fg: #fafafa;
+  --os-muted: #a1a1aa;
+  --os-accent: #e4e4e7;
+  --os-accent-fg: #09090b;
+}
+
+[data-os-theme="slate-graphite"] {
+  --os-bg: #0b0e14;
+  --os-surface: #121721;
+  --os-surface-elevated: #19202e;
+  --os-border: #242e40;
+  --os-border-strong: #334155;
+  --os-fg: #f1f5f9;
+  --os-muted: #94a3b8;
+  --os-accent: #60a5fa;
+  --os-accent-fg: #071226;
+}
+
+[data-os-theme="phosphor-mono"] {
+  --os-bg: #070a08;
+  --os-surface: #0e1410;
+  --os-surface-elevated: #151e18;
+  --os-border: #203025;
+  --os-border-strong: #2e4736;
+  --os-fg: #ecfdf5;
+  --os-muted: #94a99c;
+  --os-accent: #34d399;
+  --os-accent-fg: #041b11;
+}
+
+[data-os-theme="nordic-frost"] {
+  --os-bg: #0d1117;
+  --os-surface: #151b23;
+  --os-surface-elevated: #1c2430;
+  --os-border: #263142;
+  --os-border-strong: #35455c;
+  --os-fg: #e6edf3;
+  --os-muted: #91a4b8;
+  --os-accent: #7dd3fc;
+  --os-accent-fg: #061824;
+}
+
+[data-os-theme="warm-ash"] {
+  --os-bg: #11100f;
+  --os-surface: #191715;
+  --os-surface-elevated: #221f1c;
+  --os-border: #2f2b27;
+  --os-border-strong: #433d37;
+  --os-fg: #f5f2ed;
+  --os-muted: #a89f96;
+  --os-accent: #eab308;
+  --os-accent-fg: #1c1604;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-mono);
+    background-color: var(--os-bg);
+    color: var(--os-fg);
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, h4, button, input, select, textarea {
+    font-family: var(--font-mono);
+  }
+
+  code, pre, kbd {
+    font-family: var(--font-mono);
+  }
+
+  body {
+    background-color: var(--os-bg);
+    color: var(--os-fg);
+    letter-spacing: -0.01em;
+  }
+}
+
+.os-card {
+  border-radius: var(--os-radius);
+}
+
+.os-control {
+  border-radius: var(--os-radius-sm);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.os-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.os-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.os-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--os-border-strong);
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
