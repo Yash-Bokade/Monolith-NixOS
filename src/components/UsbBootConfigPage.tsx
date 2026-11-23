@@ -129,7 +129,7 @@ export function UsbBootConfigPage({ config }: UsbBootConfigPageProps) {
               monolith-boot.conf
             </code>{' '}
             onto your flashed USB drive after Rufus finishes — Monolith NixOS applies it before
-            Niri Wayland launches.
+            KDE Plasma 6 Wayland launches.
           </p>
         </div>
 
@@ -180,10 +180,10 @@ export function UsbBootConfigPage({ config }: UsbBootConfigPageProps) {
               className="font-display text-sm font-semibold"
               style={{ color: 'var(--os-fg)' }}
             >
-              Account, Niri Wayland &amp; Nix Channel
+              Account, Plasma 6 Wayland &amp; Nix Channel
             </h2>
             <p className="mt-1 text-xs" style={{ color: 'var(--os-muted)' }}>
-              Applied on boot before Niri starts. Stored securely at{' '}
+              Applied on boot before KDE Plasma 6 Wayland starts. Stored securely at{' '}
               <code className="font-mono">/persist/monolith-boot.conf</code> (chmod 600).
             </p>
 
@@ -349,7 +349,7 @@ export function UsbBootConfigPage({ config }: UsbBootConfigPageProps) {
                   className="block font-mono text-xs font-medium"
                   style={{ color: 'var(--os-fg)' }}
                 >
-                  NixOS Channel (Niri Wayland Only)
+                  NixOS Channel (Optimized Plasma 6 Wayland)
                 </label>
                 <select
                   id="usb-nix-channel"
@@ -693,7 +693,7 @@ export function UsbBootConfigPage({ config }: UsbBootConfigPageProps) {
                   className="mt-0.5 h-4 w-4 accent-sky-400"
                 />
                 <span className="text-xs" style={{ color: 'var(--os-fg)' }}>
-                  Unattended first boot (skip interactive TUI wizard and launch Niri directly)
+                  Unattended first boot (skip interactive wizard and launch Plasma 6 directly)
                 </span>
               </label>
             </div>

@@ -303,13 +303,13 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--os-border)] pb-5">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--os-accent)]">
-            Dedicated OS Configuration · JetBrains Mono · Niri Wayland
+            Dedicated OS Configuration · JetBrains Mono · Optimized Plasma 6 Wayland
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--os-fg)]">
             Settings Studio
           </h1>
           <p className="mt-1 text-xs text-[var(--os-muted)]">
-            Every change updates the unified theme, Live Niri Preview, NixOS Flake, and USB boot config instantly.
+            Every change updates the unified Plasma 6 theme, Live Desktop Preview, NixOS Flake, and USB boot config instantly.
           </p>
         </div>
 
@@ -353,8 +353,8 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
             </div>
             <div className="mt-2.5 space-y-1.5 tabular-nums">
               <div className="flex justify-between">
-                <span>Compositor</span>
-                <span className="text-[var(--os-fg)]">Niri Only</span>
+                <span>Desktop</span>
+                <span className="text-[var(--os-fg)]">Plasma 6 Wayland</span>
               </div>
               <div className="flex justify-between">
                 <span>Nix Channel</span>
@@ -393,10 +393,10 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
               <section className="os-card border border-[var(--os-border)] bg-[var(--os-surface)] p-5">
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold text-[var(--os-fg)]">
-                    Unified OS & TUI Theme
+                    Unified Plasma 6 &amp; TUI Theme
                   </h2>
                   <p className="mt-0.5 text-xs text-[var(--os-muted)]">
-                    Applies identically across Niri borders, Waybar, Foot terminal, Fuzzel, Neovim, GTK, dialog TUIs, and the TUI screensaver.
+                    Applies identically across KDE Plasma 6 Breeze Dark, rounded menus, System Settings, Konsole, Neovim, GTK, and TUI dialogs.
                   </p>
                 </div>
 
@@ -447,10 +447,10 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
               <section className="os-card border border-[var(--os-border)] bg-[var(--os-surface)] p-5">
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold text-[var(--os-fg)]">
-                    Minimal Wallpaper (swaybg)
+                    Minimal Wallpaper (Plasma 6)
                   </h2>
                   <p className="mt-0.5 text-xs text-[var(--os-muted)]">
-                    Low-distraction dark wallpapers rendered beneath transparent rounded Niri windows.
+                    Low-distraction dark wallpapers applied automatically via <code className="text-[var(--os-fg)]">plasma-apply-wallpaperimage</code> beneath translucent rounded windows.
                   </p>
                 </div>
 
@@ -530,10 +530,10 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
               {/* Corner Radius, Window Transparency & Geometry */}
               <section className="os-card border border-[var(--os-border)] bg-[var(--os-surface)] p-5">
                 <h2 className="text-sm font-semibold text-[var(--os-fg)]">
-                  Rounded Corners, Transparent Windows & JetBrains Mono Typography
+                  Rounded Menus &amp; Windows, Transparency &amp; JetBrains Mono
                 </h2>
                 <p className="mt-0.5 mb-5 text-xs text-[var(--os-muted)]">
-                  Directly updates Niri <code className="text-[var(--os-fg)]">geometry-corner-radius</code>, window opacity, Waybar rounding, and live Studio radii.
+                  Directly updates KWin <code className="text-[var(--os-fg)]">kwinrulesrc</code> window opacity, Breeze Dark rounded menus, floating Plasma panel, and live Studio radii.
                 </p>
 
                 <div className="grid gap-5 md:grid-cols-2">
@@ -607,7 +607,7 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
                   <div>
                     <div className="mb-1.5 flex justify-between text-xs">
                       <label htmlFor="gap-slider" className="text-[var(--os-fg)]">
-                        Niri Window Gap
+                        Window Tile Spacing
                       </label>
                       <span className="tabular-nums text-[var(--os-accent)]">
                         {config.appearance.windowGapPx} px
@@ -631,10 +631,10 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
               <section className="grid gap-5 md:grid-cols-2">
                 <div className="os-card border border-[var(--os-border)] bg-[var(--os-surface)] p-5">
                   <h2 className="text-sm font-semibold text-[var(--os-fg)]">
-                    Auto-Hiding Wayland Taskbar
+                    Floating Rounded Auto-Hide Plasma Panel
                   </h2>
                   <p className="mt-0.5 mb-4 text-xs text-[var(--os-muted)]">
-                    Waybar shows on login and slides out automatically when not hovered.
+                    Configured via <code className="text-[var(--os-fg)]">monolith-plasma-init</code> as a floating rounded panel that auto-hides cleanly when not hovered.
                   </p>
 
                   <div className="space-y-3 text-xs">
@@ -689,8 +689,8 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
                       </div>
                       <input
                         type="range"
-                        min={26}
-                        max={42}
+                        min={28}
+                        max={56}
                         step={2}
                         value={config.appearance.taskbarHeightPx}
                         onChange={(e) =>
@@ -724,10 +724,10 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
 
                 <div className="os-card border border-[var(--os-border)] bg-[var(--os-surface)] p-5">
                   <h2 className="text-sm font-semibold text-[var(--os-fg)]">
-                    Theme-Synced TUI Screensaver
+                    Screen Locker &amp; Theme-Synced Screensaver
                   </h2>
                   <p className="mt-0.5 mb-4 text-xs text-[var(--os-muted)]">
-                    Triggers via swayidle and invokes <code className="text-[var(--os-fg)]">monolith-ram-clean</code> to free project RAM.
+                    Configured in <code className="text-[var(--os-fg)]">kscreenlockerrc</code> and invokes <code className="text-[var(--os-fg)]">monolith-ram-clean</code> to free idle project RAM.
                   </p>
 
                   <div className="space-y-3 text-xs">
@@ -1103,10 +1103,10 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
               <section className="os-card border border-[var(--os-border)] bg-[var(--os-surface)] p-5">
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold text-[var(--os-fg)]">
-                    Keyboard-Only Window & System Shortcuts (Niri)
+                    Unified Global Shortcuts (Plasma 6 kglobalshortcutsrc)
                   </h2>
                   <p className="mt-1 text-xs text-[var(--os-muted)]">
-                    Every GUI window has zero <code className="text-[var(--os-fg)]">[minimize, expand, close]</code> buttons (<code className="text-[var(--os-fg)]">prefer-no-csd</code> + GTK button stripping). Modify any binding below or add custom shortcuts to launch new apps.
+                    One single shortcut system — no duplicate or broken menus. Window buttons stay hidden via KWin (<code className="text-[var(--os-fg)]">ButtonsOnLeft=</code> / <code className="text-[var(--os-fg)]">ButtonsOnRight=</code>). Edit here or visually inside native <strong className="text-[var(--os-fg)]">System Settings → Keyboard → Shortcuts</strong>.
                   </p>
                 </div>
 
@@ -1192,7 +1192,7 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
                   Custom App Shortcuts
                 </h2>
                 <p className="mt-0.5 mb-4 text-xs text-[var(--os-muted)]">
-                  Bind any keyboard shortcut to launch new TUI or GUI apps in Niri (<code className="text-[var(--os-fg)]">config.kdl</code>).
+                  Generates standard <code className="text-[var(--os-fg)]">.desktop</code> launchers + <code className="text-[var(--os-fg)]">kglobalshortcutsrc</code> bindings so every custom app shortcut works reliably in Plasma 6.
                 </p>
 
                 <div className="os-control mb-4 grid gap-3 border border-[var(--os-border)] bg-[var(--os-bg)] p-4 md:grid-cols-12">
@@ -1216,7 +1216,7 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
                       type="text"
                       value={customCommand}
                       onChange={(e) => setCustomCommand(e.target.value)}
-                      placeholder="foot -T Lazygit lazygit"
+                      placeholder="konsole -e lazygit"
                       className="os-control w-full border border-[var(--os-border)] bg-[var(--os-surface)] px-2.5 py-1.5 text-xs text-[var(--os-fg)] focus:border-[var(--os-accent)] focus:outline-none"
                     />
                   </div>
@@ -1326,7 +1326,7 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
                       Idle RAM Guard (Target &lt; {config.nixSystem.ramIdleLimitMb} MB)
                     </h2>
                     <p className="mt-0.5 text-xs text-[var(--os-muted)]">
-                      Uses zramSwap, earlyoom, and an automatic idle cleaner (<code className="text-[var(--os-fg)]">monolith-ram-clean</code>) that evicts tmpfs project caches when idle.
+                      Baloo file indexing disabled, KDE bloat excluded, zramSwap + earlyoom + <code className="text-[var(--os-fg)]">monolith-ram-clean</code> keep Plasma 6 crisp and under budget on USB.
                     </p>
                   </div>
                   <div
@@ -1344,8 +1344,8 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
                 <div className="mt-4 grid gap-3 sm:grid-cols-4">
                   {[
                     { label: 'Kernel + systemd', value: `${idleRam.kernelAndSystemdMb} MB` },
-                    { label: 'Niri Wayland', value: `${idleRam.niriWaylandMb} MB` },
-                    { label: 'Waybar + swaybg', value: `${idleRam.waybarAndSwaybgMb} MB` },
+                    { label: 'KWin Wayland', value: `${idleRam.kwinWaylandMb} MB` },
+                    { label: 'Plasma Shell (Trimmed)', value: `${idleRam.plasmaShellMb} MB` },
                     { label: 'USB/HDMI/Wi-Fi/BT', value: `${idleRam.hardwareServicesMb} MB` },
                   ].map((item) => (
                     <div
@@ -1438,12 +1438,12 @@ export const SettingsStudio: React.FC<SettingsStudioProps> = ({
                       {
                         key: 'usbAutomount',
                         label: 'USB-A / USB-C / Thunderbolt Ports',
-                        desc: 'udisks2 + udiskie + bolt + exfatprogs/ntfs3g auto-mount',
+                        desc: 'udisks2 + Plasma Device Notifier + bolt + exfatprogs/ntfs3g',
                       },
                       {
                         key: 'hdmiDisplayAudio',
                         label: 'HDMI / DisplayPort Video & Audio',
-                        desc: 'wlr-randr + kanshi hotplug profiles + PipeWire HDMI audio',
+                        desc: 'KWin Wayland + kscreen-doctor + PipeWire HDMI audio',
                       },
                       {
                         key: 'universalWifiEthernet',

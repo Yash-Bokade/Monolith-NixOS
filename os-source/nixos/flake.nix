@@ -1,5 +1,5 @@
 {
-  description = "Monolith NixOS — Minimal Declarative Portable NixOS Live ISO (Niri Wayland Only)";
+  description = "Monolith NixOS — Optimized Graphical Portable NixOS Live ISO (KDE Plasma 6 Wayland)";
 
   inputs = {
     # Latest NixOS channel selected in Monolith Settings (nixos-unstable)

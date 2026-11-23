@@ -98,7 +98,7 @@ test('resolveToolchainPlan maps Java + Rust + custom packages to Nixpkgs and Neo
   assert.ok(plan.nvimLspServers.includes('rust_analyzer'));
 });
 
-test('generateOsRepositoryFiles emits Niri-only latest NixOS config with zero Hyprland, rounded corners, JetBrains Mono, auto-hide bar, RAM cleaner, and Wine .exe prompt', () => {
+test('generateOsRepositoryFiles emits Optimized Graphical KDE Plasma 6 Wayland NixOS config with rounded menus, native System Settings, unified shortcuts, Baloo disabled, RAM cleaner, and Wine .exe prompt', () => {
   const customConfig = {
     ...DEFAULT_OS_CONFIG,
     appearance: {
@@ -108,6 +108,7 @@ test('generateOsRepositoryFiles emits Niri-only latest NixOS config with zero Hy
       windowOpacity: 0.86,
       taskbarAutoHide: true,
       taskbarShowOnStart: true,
+      barPosition: 'bottom' as const,
     },
     nixSystem: {
       ...DEFAULT_OS_CONFIG.nixSystem,
@@ -121,7 +122,7 @@ test('generateOsRepositoryFiles emits Niri-only latest NixOS config with zero Hy
       {
         id: 'custom-music',
         label: 'Open Spotify TUI',
-        command: 'foot spotify_player',
+        command: 'konsole -e spotify_player',
         modifier: 'Super+Alt' as const,
         key: 'M',
       },
@@ -147,28 +148,38 @@ test('generateOsRepositoryFiles emits Niri-only latest NixOS config with zero Hy
   assert.doesNotMatch(flake, /hyprland/i);
 
   const nixCfg = byPath.get('nixos/configuration.nix')!;
-  // Niri-only, strictly zero Hyprland
-  assert.match(nixCfg, /programs\.niri\.enable = true;/);
+  // Optimized Graphical KDE Plasma 6 Wayland, strictly zero Niri/Waybar/Fuzzel/Hyprland
+  assert.match(nixCfg, /services\.desktopManager\.plasma6\.enable = true;/);
+  assert.match(nixCfg, /services\.displayManager\.sddm\s*=\s*\{[\s\S]*?wayland\.enable = true;/);
+  assert.match(nixCfg, /services\.displayManager\.defaultSession = "plasma";/);
+  assert.match(nixCfg, /environment\.plasma6\.excludePackages/);
+  assert.doesNotMatch(nixCfg, /programs\.niri\.enable/);
   assert.doesNotMatch(nixCfg, /hyprland/i);
   assert.doesNotMatch(nixCfg, /hyprctl/i);
+  assert.doesNotMatch(nixCfg, /tuigreet/i);
 
-  // Latest Nix, JetBrains Mono, Wallpaper, Rounded Corners, Transparency, Auto-Hide Taskbar
+  // Latest Nix, JetBrains Mono, Native Rounded Breeze Dark, Translucent Windows, Zero Window Buttons
   assert.match(nixCfg, /nix\.package = pkgs\.nixVersions\.latest;/);
   assert.match(nixCfg, /jetbrains-mono/);
-  assert.match(nixCfg, /geometry-corner-radius 14\.0/);
-  assert.match(nixCfg, /opacity 0\.86/);
-  assert.match(nixCfg, /prefer-no-csd/);
+  assert.match(nixCfg, /ButtonsOnLeft=/);
+  assert.match(nixCfg, /ButtonsOnRight=/);
+  assert.match(nixCfg, /opacityactive=86/);
+  assert.match(nixCfg, /Indexing-Enabled=false/);
   assert.match(nixCfg, /gtk-decoration-layout=/);
-  assert.match(nixCfg, /"start_hidden": false/);
-  assert.match(nixCfg, /"mode": "hide"/);
-  assert.match(nixCfg, /swaybg/);
-  assert.match(nixCfg, /swayidle/);
+  assert.match(nixCfg, /p\.floating = true;/);
+  assert.match(nixCfg, /p\.hiding = "autohide";/);
+
+  // Unified Shortcut System (kglobalshortcutsrc + native System Settings)
+  assert.match(nixCfg, /kglobalshortcutsrc/);
+  assert.match(nixCfg, /\[services\]\[systemsettings\.desktop\]/);
+  assert.match(nixCfg, /monolith-plasma-init/);
+  assert.match(nixCfg, /exec systemsettings/);
+  assert.match(nixCfg, /_launch=Meta\+Alt\+M/);
+  assert.match(nixCfg, /52,211,153/);
 
   // Hardware (USB, HDMI, Wi-Fi, Bluetooth), RAM Cleaner, Screensaver, Wine .exe, Global & Local Pkgs
   assert.match(nixCfg, /services\.udisks2\.enable = true;/);
-  assert.match(nixCfg, /udiskie/);
-  assert.match(nixCfg, /wlr-randr/);
-  assert.match(nixCfg, /kanshi/);
+  assert.match(nixCfg, /kscreen-doctor/);
   assert.match(nixCfg, /hardware\.bluetooth/);
   assert.match(nixCfg, /zramSwap/);
   assert.match(nixCfg, /services\.earlyoom\.enable = true;/);
@@ -181,18 +192,17 @@ test('generateOsRepositoryFiles emits Niri-only latest NixOS config with zero Hy
   assert.match(nixCfg, /wineWowPackages\.stable/);
   assert.match(nixCfg, /winetricks/);
   assert.match(nixCfg, /fastfetch/);
-  assert.match(nixCfg, /Mod\+Alt\+M \{ spawn "sh" "-lc" "foot spotify_player"; \}/);
-  assert.match(nixCfg, /34d399/i);
 
   const shortcutsTxt = generateShortcutsText(customConfig);
   assert.match(shortcutsTxt, /Open Spotify TUI/);
+  assert.match(shortcutsTxt, /KDE Plasma 6 Wayland/);
   assert.doesNotMatch(shortcutsTxt, /Hyprland/i);
 });
 
-test('usbBootConfig validates fields and outputs Niri-only monolith-boot.conf with Windows .exe flag', () => {
+test('usbBootConfig validates fields and outputs Plasma 6 monolith-boot.conf with Windows .exe flag', () => {
   const defaults = createDefaultUsbBootConfig(DEFAULT_OS_CONFIG);
   assert.equal(validateUsbBootConfig(defaults).isValid, true);
-  assert.equal(defaults.compositor, 'niri');
+  assert.equal(defaults.compositor, 'plasma6');
 
   const conf = generateUsbBootConf({
     ...defaults,
@@ -200,7 +210,7 @@ test('usbBootConfig validates fields and outputs Niri-only monolith-boot.conf wi
     windowsExeSupport: true,
     nixChannel: 'nixos-unstable',
   });
-  assert.match(conf, /MONOLITH_COMPOSITOR="niri"/);
+  assert.match(conf, /MONOLITH_COMPOSITOR="plasma6"/);
   assert.match(conf, /MONOLITH_WINDOWS_EXE="true"/);
   assert.match(conf, /MONOLITH_NIX_CHANNEL="nixos-unstable"/);
 
@@ -213,7 +223,7 @@ test('buildOsSourceZip produces a valid non-empty zip archive blob', async () =>
   assert.ok(blob.size > 5000);
 });
 
-test('all generated NixOS shell scripts pass bash -n syntax check and CI uses cache.nixos.org cleanly', () => {
+test('all generated NixOS shell scripts and systemd init script pass bash -n syntax check and CI uses cache.nixos.org cleanly', () => {
   const files = generateOsRepositoryFiles(DEFAULT_OS_CONFIG);
   const nixCfg = files.find((f) => f.path === 'nixos/configuration.nix')?.content ?? '';
   const workflow = files.find((f) => f.path === '.github/workflows/build-nixos.yml')?.content ?? '';
@@ -241,5 +251,21 @@ test('all generated NixOS shell scripts pass bash -n syntax check and CI uses ca
   }
 
   assert.ok(checked >= 15, `Expected at least 15 generated shell scripts, checked ${checked}`);
+
+  // Also check systemd.services.monolith-init-user.script
+  const initRe = new RegExp(`script = ${q2}\\n([\\s\\S]*?)\\n\\s*${q2};`);
+  const initMatch = initRe.exec(nixCfg);
+  assert.ok(initMatch, 'Expected monolith-init-user systemd script');
+  const initBody = initMatch[1]
+    .replace(/''\$/g, '$')
+    .replace(/\$\{[a-zA-Z0-9_]+\}/g, '/nix/store/mock')
+    .replace(/'''/g, "''");
+  const initRes = spawnSync('bash', ['-n'], { input: initBody, encoding: 'utf8' });
+  assert.equal(
+    initRes.status,
+    0,
+    `systemd monolith-init-user script failed bash -n syntax check:\n${initRes.stderr}`,
+  );
 });
+
 

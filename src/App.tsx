@@ -11,27 +11,27 @@ import type { AppViewId, OSConfigState } from './lib/types';
 
 function getInitialRouteState(): {
   view: AppViewId;
-  liveMode: 'first-boot' | 'desktop-niri';
+  liveMode: 'first-boot' | 'desktop-plasma';
 } {
   try {
     const params = new URLSearchParams(window.location.search);
     if (params.get('autostart') === '1') {
-      return { view: 'live-os', liveMode: 'desktop-niri' };
+      return { view: 'live-os', liveMode: 'desktop-plasma' };
     }
     const tab = params.get('view');
     if (tab === 'live-os' || tab === 'usb-config' || tab === 'settings' || tab === 'source') {
-      return { view: tab, liveMode: 'desktop-niri' };
+      return { view: tab, liveMode: 'desktop-plasma' };
     }
   } catch {
     // Ignore SSR or restricted location access
   }
-  return { view: 'overview', liveMode: 'desktop-niri' };
+  return { view: 'overview', liveMode: 'desktop-plasma' };
 }
 
 export default function App() {
   const initial = getInitialRouteState();
   const [activeView, setActiveView] = useState<AppViewId>(initial.view);
-  const [liveMode, setLiveMode] = useState<'first-boot' | 'desktop-niri'>(
+  const [liveMode, setLiveMode] = useState<'first-boot' | 'desktop-plasma'>(
     initial.liveMode,
   );
   const [config, setConfig] = useState<OSConfigState>(() => loadOSConfig());
@@ -55,13 +55,13 @@ export default function App() {
 
   const handleNavigate = (view: AppViewId) => {
     if (view === 'live-os') {
-      setLiveMode('desktop-niri');
+      setLiveMode('desktop-plasma');
     }
     setActiveView(view);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleLaunchLivePreset = (mode: 'first-boot' | 'desktop-niri') => {
+  const handleLaunchLivePreset = (mode: 'first-boot' | 'desktop-plasma') => {
     setLiveMode(mode);
     setActiveView('live-os');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -79,7 +79,7 @@ export default function App() {
       link.click();
       URL.revokeObjectURL(url);
       setExportToast(
-        'Exported Niri-only monolith-nixos-source.zip with your NixOS Flake & GitHub Actions workflow.',
+        'Exported Optimized Plasma 6 Wayland monolith-nixos-source.zip with NixOS Flake & GitHub Actions workflow.',
       );
       window.setTimeout(() => setExportToast(null), 4000);
     } catch {

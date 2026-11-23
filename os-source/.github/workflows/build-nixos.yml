@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   build-nixos:
-    name: Build & Release Niri NixOS Flake ISO
+    name: Build & Release Graphical Plasma 6 NixOS ISO
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -37,7 +37,7 @@ jobs:
       - name: Install Determinate Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Build declarative Monolith NixOS Live ISO (nixos-unstable + Niri + zstd)
+      - name: Build declarative Monolith NixOS Graphical ISO (nixos-unstable + Plasma 6 + zstd)
         id: meta
         run: |
           mkdir -p out release-assets
@@ -76,8 +76,9 @@ jobs:
           prerelease: false
           files: release-assets/*
           body: |
-            ## Monolith NixOS — Declarative Portable Niri Wayland ISO (`nixos-unstable`)
-            - **Compositor**: Niri Scrollable Wayland (auto-started, JetBrains Mono, 10px rounded corners, minimal wallpaper, zero GUI window buttons)
-            - **Idle RAM**: ~366 MB idle (< 500 MB budget with ZRAM, earlyoom, and on-demand RAM-only local project packages)
+            ## Monolith NixOS — Optimized Graphical NixOS Live ISO (`nixos-unstable`)
+            - **Desktop**: Optimized KDE Plasma 6 Wayland (auto-login, native graphical System Settings, rounded floating auto-hide panel, minimal wallpaper, JetBrains Mono, zero GUI window buttons)
+            - **Shortcuts**: Single unified `kglobalshortcutsrc` system editable visually in System Settings → Keyboard → Shortcuts
+            - **Optimization**: Baloo file indexer disabled, KDE bloat excluded, ZRAM + earlyoom + idle RAM cleaner (~466 MB idle, on-demand RAM-only local project packages)
             - **Persistence**: Auto-scales **100%** of remaining drive capacity on first boot (LocalSend replaces exFAT) into `MONOLITH_PERSIST`
-            - **Hardware & Apps**: USB automount (`udiskie`), HDMI/DP (`wlr-randr` + `kanshi`), Wi-Fi (`iwd`), Bluetooth (`bluetui`), LocalSend, OBS, Neovim, Minimal Firefox, optional Wine `.exe` support
+            - **Hardware & Apps**: Native Wi-Fi, Bluetooth, HDMI multi-display, USB automount, LocalSend, OBS, Neovim, Minimal Firefox, optional Wine `.exe` support

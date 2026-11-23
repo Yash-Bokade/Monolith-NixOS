@@ -45,29 +45,29 @@ import type {
 
 interface LiveOSPreviewProps {
   config: OSConfigState;
-  initialMode: 'first-boot' | 'desktop-niri';
+  initialMode: 'first-boot' | 'desktop-plasma';
   onUpdateConfig: (next: OSConfigState) => void;
   onOpenSettings: () => void;
 }
 
 const WINDOW_RAM_MB: Record<DesktopWindowId, number> = {
   neovim: 44,
-  terminal: 18,
+  terminal: 22,
   firefox: 135,
   obs: 110,
   localsend: 42,
-  hardware: 12,
-  'settings-tui': 14,
+  hardware: 14,
+  'system-settings': 28,
 };
 
 const WINDOW_META: Record<DesktopWindowId, { title: string; subtitle: string }> = {
-  neovim: { title: 'neovim', subtitle: 'TUI IDE · JetBrains Mono' },
-  terminal: { title: 'foot', subtitle: 'Wayland TUI Shell' },
-  hardware: { title: 'monolith-hardware', subtitle: 'USB · HDMI · Wi-Fi · BT · RAM' },
-  'settings-tui': { title: 'monolith-settings', subtitle: 'Theme · Wallpaper · Radius · Opacity' },
-  firefox: { title: 'firefox', subtitle: 'Minimal VA-API · Zero Chrome Buttons' },
-  localsend: { title: 'localsend', subtitle: 'LAN Peer Transfer (No exFAT Needed)' },
-  obs: { title: 'obs-studio', subtitle: 'Wayland PipeWire Recorder' },
+  neovim: { title: 'Neovim IDE', subtitle: 'Konsole · Auto-LSP · JetBrains Mono' },
+  terminal: { title: 'Konsole', subtitle: 'Plasma 6 Wayland Terminal' },
+  hardware: { title: 'Hardware & Ports', subtitle: 'USB · HDMI · Wi-Fi · BT · RAM' },
+  'system-settings': { title: 'System Settings', subtitle: 'Plasma 6 Graphical Settings (Super+,)' },
+  firefox: { title: 'Firefox', subtitle: 'Minimal VA-API · Zero Window Buttons' },
+  localsend: { title: 'LocalSend', subtitle: 'LAN Peer Transfer (No exFAT Needed)' },
+  obs: { title: 'OBS Studio', subtitle: 'Wayland PipeWire Recorder' },
 };
 
 export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
@@ -76,14 +76,15 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
   onUpdateConfig,
   onOpenSettings,
 }) => {
-  const [phase, setPhase] = useState<'first-boot' | 'desktop-niri'>(initialMode);
-  const [openWindows, setOpenWindows] = useState<DesktopWindowId[]>(['neovim', 'terminal']);
+  const [phase, setPhase] = useState<'first-boot' | 'desktop-plasma'>(initialMode);
+  const [openWindows, setOpenWindows] = useState<DesktopWindowId[]>(['system-settings', 'terminal']);
   const [minimizedWindows, setMinimizedWindows] = useState<DesktopWindowId[]>([]);
-  const [focusedWindow, setFocusedWindow] = useState<DesktopWindowId>('neovim');
+  const [focusedWindow, setFocusedWindow] = useState<DesktopWindowId>('system-settings');
   const [expandedWindow, setExpandedWindow] = useState<DesktopWindowId | null>(null);
   const [windowsHidden, setWindowsHidden] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<'appearance' | 'panel' | 'shortcuts'>('appearance');
 
-  // Auto-hiding taskbar state (visible on start per config)
+  // Floating rounded auto-hiding Plasma panel state
   const [barVisible, setBarVisible] = useState<boolean>(config.appearance.taskbarShowOnStart);
   const [barPinned, setBarPinned] = useState<boolean>(!config.appearance.taskbarAutoHide);
   const hideTimerRef = useRef<number | null>(null);
@@ -97,21 +98,21 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
   const [newProjStack, setNewProjStack] = useState('python');
   const [newProjPkgs, setNewProjPkgs] = useState('python312, uv, ruff, pyright');
 
-  // Modals & TUI overlays
+  // Unified shortcut menu & modals
   const [showShortcutSearch, setShowShortcutSearch] = useState(false);
   const [shortcutQuery, setShortcutQuery] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [screensaverActive, setScreensaverActive] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // First-boot TUI wizard state
+  // First-boot wizard state
   const [fbStep, setFbStep] = useState<1 | 2 | 3>(1);
   const [fbSelectedStacks, setFbSelectedStacks] = useState<string[]>(['rust', 'nodejs']);
 
-  // Interactive terminal state
+  // Interactive Konsole terminal state
   const [termInput, setTermInput] = useState('');
   const [termLines, setTermLines] = useState<string[]>([
-    `Monolith NixOS (${config.nixSystem.channel}) · Niri Wayland · JetBrains Mono`,
+    `Monolith NixOS (${config.nixSystem.channel}) · Optimized Plasma 6 Wayland · JetBrains Mono`,
     `Type: monolith-pkg install <pkg> | monolith-ram-clean | monolith-exe app.exe | monolith-persist-usb --status`,
   ]);
 
@@ -230,10 +231,10 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
     if (windowsHidden || minimizedWindows.length > 0) {
       setWindowsHidden(false);
       setMinimizedWindows([]);
-      notify('Restored Niri windows');
+      notify('Restored Plasma 6 windows');
     } else {
       setWindowsHidden(true);
-      notify('Hid all windows — wallpaper view');
+      notify('Peek at desktop — wallpaper view');
     }
   };
 
@@ -266,7 +267,7 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
         setShowNewProjectModal(false);
         return;
       }
-      if (phase !== 'desktop-niri') return;
+      if (phase !== 'desktop-plasma') return;
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
         return;
@@ -286,16 +287,15 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
       } else if (k === 'd') {
         e.preventDefault();
         toggleHideAllWindows();
-      } else if (k === 's') {
+      } else if (k === ' ' || k === 's') {
         e.preventDefault();
-        setBarVisible((v) => !v);
-        setBarPinned((p) => !p);
+        setShowShortcutSearch((v) => !v);
       } else if (k === '/') {
         e.preventDefault();
         setShowShortcutSearch((v) => !v);
       } else if (k === ',') {
         e.preventDefault();
-        openOrFocusWindow('settings-tui');
+        openOrFocusWindow('system-settings');
       } else if (k === 'l' && e.shiftKey) {
         e.preventDefault();
         activateScreensaver();
@@ -481,27 +481,69 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
       onMouseLeave={handleScheduleHideBar}
       style={{
         height: `${config.appearance.taskbarHeightPx}px`,
-        borderRadius: `${Math.min(config.appearance.cornerRadiusPx, 10)}px`,
+        borderRadius: `${Math.max(10, Math.min(config.appearance.cornerRadiusPx + 4, 18))}px`,
         backgroundColor: `color-mix(in srgb, ${palette.surfaceElevated} ${Math.round(
-          Math.max(0.78, config.appearance.windowOpacity) * 100,
+          Math.max(0.84, config.appearance.windowOpacity) * 100,
         )}%, transparent)`,
         borderColor: palette.border,
       }}
-      className={`mx-2 my-1.5 flex items-center justify-between border px-3 text-[11px] backdrop-blur-md transition-all duration-200 ${
-        barVisible ? 'opacity-100 translate-y-0' : 'pointer-events-none opacity-0 -translate-y-2'
+      className={`mx-3 my-2 flex items-center justify-between border px-3 text-[11px] shadow-lg backdrop-blur-md transition-all duration-200 ${
+        barVisible
+          ? 'opacity-100 translate-y-0'
+          : config.appearance.barPosition === 'bottom'
+            ? 'pointer-events-none opacity-0 translate-y-2'
+            : 'pointer-events-none opacity-0 -translate-y-2'
       }`}
     >
-      <div className="flex items-center gap-3 overflow-hidden">
-        <span className="font-semibold tracking-wider" style={{ color: palette.accent }}>
-          NIRI
-        </span>
-        <span style={{ color: palette.muted }}>WS 1</span>
+      <div className="flex items-center gap-2 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowShortcutSearch(true)}
+          className="os-control inline-flex items-center gap-1.5 border px-2 py-1 text-[11px] font-semibold transition-opacity hover:opacity-90"
+          style={{
+            borderColor: palette.accent,
+            backgroundColor: `color-mix(in srgb, ${palette.accent} 14%, transparent)`,
+            color: palette.accent,
+          }}
+          title="Application Launcher & Unified Shortcuts (Super + Space / Super + /)"
+        >
+          <span>PLASMA 6</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openOrFocusWindow('system-settings')}
+          className="os-control inline-flex items-center gap-1 border px-2 py-1 text-[11px] transition-opacity hover:opacity-90"
+          style={{
+            borderColor: visibleWindows.includes('system-settings') ? palette.accent : palette.border,
+            color: visibleWindows.includes('system-settings') ? palette.fg : palette.muted,
+          }}
+        >
+          <Settings2 className="h-3 w-3" style={{ color: palette.accent }} />
+          <span className="hidden sm:inline">System Settings</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openOrFocusWindow('terminal')}
+          className="os-control inline-flex items-center gap-1 border px-2 py-1 text-[11px] transition-opacity hover:opacity-90"
+          style={{
+            borderColor: visibleWindows.includes('terminal') ? palette.accent : palette.border,
+            color: visibleWindows.includes('terminal') ? palette.fg : palette.muted,
+          }}
+        >
+          <Terminal className="h-3 w-3" />
+          <span className="hidden md:inline">Konsole</span>
+        </button>
+
         {activeProject ? (
-          <span className="truncate" style={{ color: palette.fg }}>
-            PROJ: {activeProject.name} ({activeProject.localPackages.length} RAM pkgs)
+          <span className="hidden truncate text-[10px] lg:inline" style={{ color: palette.muted }}>
+            RAM: {activeProject.name} ({activeProject.localPackages.length} pkgs)
           </span>
         ) : (
-          <span style={{ color: palette.muted }}>IDLE · tmpfs clean</span>
+          <span className="hidden text-[10px] lg:inline" style={{ color: palette.muted }}>
+            IDLE · tmpfs clean
+          </span>
         )}
         {minimizedWindows.length > 0 && (
           <button
@@ -510,7 +552,7 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
             className="underline decoration-dotted"
             style={{ color: palette.accent }}
           >
-            {minimizedWindows.length} minimized (restore)
+            {minimizedWindows.length} minimized
           </button>
         )}
       </div>
@@ -548,7 +590,7 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
             <div className="mt-2 space-y-0.5 font-mono">
               <div>
                 <span style={{ color: palette.muted }}> 1 </span>
-                <span style={{ color: palette.accent }}>// Monolith NixOS · Niri Wayland</span>
+                <span style={{ color: palette.accent }}>// Monolith NixOS · Optimized Plasma 6 Wayland</span>
               </div>
               <div>
                 <span style={{ color: palette.muted }}> 2 </span>
@@ -565,13 +607,13 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
               <div>
                 <span style={{ color: palette.muted }}> 4 </span>
                 <span style={{ color: palette.fg }}>
-                  {'  '}compositor: &quot;niri&quot;, font: &quot;JetBrains Mono&quot;,
+                  {'  '}desktop: &quot;plasma6-wayland&quot;, font: &quot;JetBrains Mono&quot;,
                 </span>
               </div>
               <div>
                 <span style={{ color: palette.muted }}> 5 </span>
                 <span style={{ color: palette.fg }}>
-                  {'  '}window_buttons: false, idle_ram_mb: {idleRam.totalIdleMb},
+                  {'  '}window_buttons: false, baloo: false, idle_ram_mb: {idleRam.totalIdleMb},
                 </span>
               </div>
               <div>
@@ -681,7 +723,7 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
               </div>
               <div className="mt-1" style={{ color: palette.muted }}>
                 {config.hardware.usbAutomount
-                  ? 'udiskie + bolt active · /run/media automount'
+                  ? 'udisks2 + Plasma Device Notifier + bolt active'
                   : 'Disabled in Settings'}
               </div>
             </div>
@@ -692,14 +734,14 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
               </div>
               <div className="mt-1" style={{ color: palette.muted }}>
                 {config.hardware.hdmiDisplayAudio
-                  ? 'wlr-randr + kanshi · HDMI-A-1 + PipeWire audio'
+                  ? 'KWin Wayland + kscreen-doctor + PipeWire HDMI audio'
                   : 'Disabled in Settings'}
               </div>
             </div>
             <div className="os-control border p-2.5" style={{ borderColor: palette.border }}>
               <div className="flex items-center gap-1.5 font-semibold" style={{ color: palette.fg }}>
                 <Wifi className="h-3.5 w-3.5" style={{ color: palette.accent }} />
-                Wi-Fi (iwd + nmtui)
+                Wi-Fi (Plasma + iwd)
               </div>
               <div className="mt-1" style={{ color: palette.muted }}>
                 {config.hardware.universalWifiEthernet
@@ -710,7 +752,7 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
             <div className="os-control border p-2.5" style={{ borderColor: palette.border }}>
               <div className="flex items-center gap-1.5 font-semibold" style={{ color: palette.fg }}>
                 <Bluetooth className="h-3.5 w-3.5" style={{ color: palette.accent }} />
-                Bluetooth (bluetui)
+                Bluetooth (Plasma + bluetui)
               </div>
               <div className="mt-1" style={{ color: palette.muted }}>
                 {config.hardware.bluetoothStack
@@ -723,145 +765,246 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
           <div className="os-control border p-2.5" style={{ borderColor: palette.border }}>
             <div className="flex items-center justify-between">
               <span className="font-semibold" style={{ color: palette.fg }}>
-                Idle RAM Budget (zram + earlyoom)
+                Idle RAM Budget (Baloo OFF · zram · earlyoom)
               </span>
               <span className="tabular-nums font-semibold" style={{ color: palette.accent }}>
                 {idleRam.totalIdleMb} / {config.nixSystem.ramIdleLimitMb} MB idle
               </span>
             </div>
             <div className="mt-1 text-[10px]" style={{ color: palette.muted }}>
-              Kernel {idleRam.kernelAndSystemdMb}M · Niri {idleRam.niriWaylandMb}M · Waybar/swaybg{' '}
-              {idleRam.waybarAndSwaybgMb}M · Hardware {idleRam.hardwareServicesMb}M
+              Kernel {idleRam.kernelAndSystemdMb}M · KWin {idleRam.kwinWaylandMb}M · Plasma{' '}
+              {idleRam.plasmaShellMb}M · Hardware {idleRam.hardwareServicesMb}M
             </div>
           </div>
         </div>
       );
     }
 
-    if (id === 'settings-tui') {
+    if (id === 'system-settings') {
       return (
-        <div className="space-y-3 p-3 text-[11px]">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold" style={{ color: palette.fg }}>
-              monolith-settings (Live TUI)
-            </span>
+        <div className="grid h-full grid-cols-[120px_1fr] text-[11px]">
+          {/* Native KDE Plasma 6 System Settings Sidebar */}
+          <div
+            className="flex flex-col justify-between border-r p-2"
+            style={{ borderColor: palette.border, backgroundColor: `color-mix(in srgb, ${palette.bg} 55%, transparent)` }}
+          >
+            <div className="space-y-1">
+              {(
+                [
+                  { id: 'appearance', label: 'Appearance' },
+                  { id: 'panel', label: 'Panel & UI' },
+                  { id: 'shortcuts', label: 'Shortcuts' },
+                ] as const
+              ).map((sec) => (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => setSettingsSection(sec.id)}
+                  className="os-control block w-full border px-2 py-1.5 text-left text-[10px] font-medium"
+                  style={{
+                    borderColor: settingsSection === sec.id ? palette.accent : 'transparent',
+                    backgroundColor:
+                      settingsSection === sec.id ? palette.surfaceElevated : 'transparent',
+                    color: settingsSection === sec.id ? palette.accent : palette.muted,
+                  }}
+                >
+                  {sec.label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={onOpenSettings}
-              className="underline"
-              style={{ color: palette.accent }}
+              className="os-control border px-2 py-1 text-[10px] font-medium"
+              style={{ borderColor: palette.border, color: palette.accent }}
             >
-              Open Full Studio →
+              Full Studio →
             </button>
           </div>
 
-          <div className="space-y-2">
-            <div>
-              <div className="mb-1 text-[10px]" style={{ color: palette.muted }}>
-                Unified Theme
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(Object.keys(THEME_PALETTES) as OSThemeId[]).map((tId) => (
-                  <button
-                    key={tId}
-                    type="button"
-                    onClick={() =>
+          {/* System Settings Content Area */}
+          <div className="space-y-3 overflow-y-auto p-3">
+            {settingsSection === 'appearance' && (
+              <>
+                <div>
+                  <div className="mb-1 text-[10px] font-semibold" style={{ color: palette.fg }}>
+                    Colors &amp; Unified Theme (kdeglobals)
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Object.keys(THEME_PALETTES) as OSThemeId[]).map((tId) => (
+                      <button
+                        key={tId}
+                        type="button"
+                        onClick={() =>
+                          onUpdateConfig({
+                            ...config,
+                            appearance: { ...config.appearance, theme: tId },
+                          })
+                        }
+                        className="os-control border px-2 py-0.5 text-[10px]"
+                        style={{
+                          borderColor:
+                            config.appearance.theme === tId ? palette.accent : palette.border,
+                          color: config.appearance.theme === tId ? palette.accent : palette.muted,
+                        }}
+                      >
+                        {THEME_PALETTES[tId].name.split(' ')[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-1 text-[10px] font-semibold" style={{ color: palette.fg }}>
+                    Minimal Wallpaper
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {WALLPAPER_PRESETS.map((wp) => (
+                      <button
+                        key={wp.id}
+                        type="button"
+                        onClick={() =>
+                          onUpdateConfig({
+                            ...config,
+                            appearance: {
+                              ...config.appearance,
+                              wallpaper: wp.id as WallpaperPresetId,
+                            },
+                          })
+                        }
+                        className="os-control border px-2 py-0.5 text-[10px]"
+                        style={{
+                          borderColor:
+                            config.appearance.wallpaper === wp.id ? palette.accent : palette.border,
+                          color:
+                            config.appearance.wallpaper === wp.id ? palette.accent : palette.muted,
+                        }}
+                      >
+                        {wp.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <div className="flex justify-between text-[10px]" style={{ color: palette.muted }}>
+                      <span>Corner Radius</span>
+                      <span>{config.appearance.cornerRadiusPx}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={18}
+                      value={config.appearance.cornerRadiusPx}
+                      onChange={(e) =>
+                        onUpdateConfig({
+                          ...config,
+                          appearance: {
+                            ...config.appearance,
+                            cornerRadiusPx: Number(e.target.value),
+                          },
+                        })
+                      }
+                      className="w-full accent-[var(--os-accent)]"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px]" style={{ color: palette.muted }}>
+                      <span>Window Opacity</span>
+                      <span>{Math.round(config.appearance.windowOpacity * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={70}
+                      max={100}
+                      value={Math.round(config.appearance.windowOpacity * 100)}
+                      onChange={(e) =>
+                        onUpdateConfig({
+                          ...config,
+                          appearance: {
+                            ...config.appearance,
+                            windowOpacity: Number(e.target.value) / 100,
+                          },
+                        })
+                      }
+                      className="w-full accent-[var(--os-accent)]"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {settingsSection === 'panel' && (
+              <div className="space-y-2.5 text-[10px]">
+                <div className="font-semibold" style={{ color: palette.fg }}>
+                  Floating Rounded Plasma Panel
+                </div>
+                <label className="flex items-center justify-between">
+                  <span style={{ color: palette.muted }}>Auto-hide floating panel</span>
+                  <input
+                    type="checkbox"
+                    checked={config.appearance.taskbarAutoHide}
+                    onChange={(e) =>
                       onUpdateConfig({
                         ...config,
-                        appearance: { ...config.appearance, theme: tId },
+                        appearance: { ...config.appearance, taskbarAutoHide: e.target.checked },
                       })
                     }
-                    className="os-control border px-2 py-0.5 text-[10px]"
-                    style={{
-                      borderColor:
-                        config.appearance.theme === tId ? palette.accent : palette.border,
-                      color: config.appearance.theme === tId ? palette.accent : palette.muted,
-                    }}
-                  >
-                    {THEME_PALETTES[tId].name.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-1 text-[10px]" style={{ color: palette.muted }}>
-                Wallpaper
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {WALLPAPER_PRESETS.map((wp) => (
-                  <button
-                    key={wp.id}
-                    type="button"
-                    onClick={() =>
-                      onUpdateConfig({
-                        ...config,
-                        appearance: {
-                          ...config.appearance,
-                          wallpaper: wp.id as WallpaperPresetId,
-                        },
-                      })
-                    }
-                    className="os-control border px-2 py-0.5 text-[10px]"
-                    style={{
-                      borderColor:
-                        config.appearance.wallpaper === wp.id ? palette.accent : palette.border,
-                      color:
-                        config.appearance.wallpaper === wp.id ? palette.accent : palette.muted,
-                    }}
-                  >
-                    {wp.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <div className="flex justify-between text-[10px]" style={{ color: palette.muted }}>
-                  <span>Radius</span>
-                  <span>{config.appearance.cornerRadiusPx}px</span>
+                    className="h-3.5 w-3.5 accent-[var(--os-accent)]"
+                  />
+                </label>
+                <div className="flex items-center justify-between">
+                  <span style={{ color: palette.muted }}>Panel Edge</span>
+                  <div className="flex gap-1.5">
+                    {(['bottom', 'top'] as const).map((pos) => (
+                      <button
+                        key={pos}
+                        type="button"
+                        onClick={() =>
+                          onUpdateConfig({
+                            ...config,
+                            appearance: { ...config.appearance, barPosition: pos },
+                          })
+                        }
+                        className="os-control border px-2 py-0.5 capitalize"
+                        style={{
+                          borderColor:
+                            config.appearance.barPosition === pos ? palette.accent : palette.border,
+                          color:
+                            config.appearance.barPosition === pos ? palette.accent : palette.muted,
+                        }}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={18}
-                  value={config.appearance.cornerRadiusPx}
-                  onChange={(e) =>
-                    onUpdateConfig({
-                      ...config,
-                      appearance: {
-                        ...config.appearance,
-                        cornerRadiusPx: Number(e.target.value),
-                      },
-                    })
-                  }
-                  className="w-full accent-[var(--os-accent)]"
-                />
+                <p style={{ color: palette.muted }}>
+                  Native Breeze Dark menus and popups are rounded automatically; titlebar buttons are disabled via KWin (<code style={{ color: palette.fg }}>ButtonsOnLeft=</code>).
+                </p>
               </div>
-              <div>
-                <div className="flex justify-between text-[10px]" style={{ color: palette.muted }}>
-                  <span>Opacity</span>
-                  <span>{Math.round(config.appearance.windowOpacity * 100)}%</span>
+            )}
+
+            {settingsSection === 'shortcuts' && (
+              <div className="space-y-1.5 text-[10px]">
+                <div className="font-semibold" style={{ color: palette.fg }}>
+                  Unified Global Shortcuts (kglobalshortcutsrc)
                 </div>
-                <input
-                  type="range"
-                  min={70}
-                  max={100}
-                  value={Math.round(config.appearance.windowOpacity * 100)}
-                  onChange={(e) =>
-                    onUpdateConfig({
-                      ...config,
-                      appearance: {
-                        ...config.appearance,
-                        windowOpacity: Number(e.target.value) / 100,
-                      },
-                    })
-                  }
-                  className="w-full accent-[var(--os-accent)]"
-                />
+                {Object.values(config.hotkeys)
+                  .slice(0, 6)
+                  .map((b) => (
+                    <div
+                      key={b.action}
+                      className="flex items-center justify-between border-b py-1"
+                      style={{ borderColor: palette.border }}
+                    >
+                      <span style={{ color: palette.muted }}>{b.label}</span>
+                      <code style={{ color: palette.accent }}>{formatHotkeyCombo(b)}</code>
+                    </div>
+                  ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
       );
@@ -894,7 +1037,7 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
             {config.browser.enableVaapi ? 'ON' : 'OFF'}
           </p>
           <p style={{ color: palette.muted }}>
-            No window titlebar or [min/max/close] chrome buttons — controlled strictly via Niri shortcuts.
+            No window titlebar [min/max/close] chrome buttons — controlled cleanly via unified KWin shortcuts.
           </p>
         </div>
       );
@@ -939,9 +1082,9 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
             className="mt-4 text-left text-xs leading-5"
             style={{ color: palette.accent }}
           >
-{`0xNIX  ::  flake.lock  ::  niri-wayland  ::  tmpfs-clean
+{`0xNIX  ::  flake.lock  ::  plasma6-wayland  ::  tmpfs-clean
   10110010  nixpkgs#neovim   [idle: ${idleRam.totalIdleMb} MB]   01001101
-  01101001  swayidle-active  [budget: <${config.nixSystem.ramIdleLimitMb} MB]   11010010
+  01101001  kscreenlocker    [budget: <${config.nixSystem.ramIdleLimitMb} MB]   11010010
   11000101  jetbrains-mono   [theme: ${config.appearance.theme}]   00110101`}
           </pre>
         )}
@@ -949,14 +1092,14 @@ export const LiveOSPreview: React.FC<LiveOSPreviewProps> = ({
           <pre className="mt-4 text-xs leading-5" style={{ color: palette.accent }}>
 {`        ___---~~~---___         ___---~~~---___
     _--~               ~--___--~               ~--_
-___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
+___~    MONOLITH NIXOS · PLASMA 6 WAYLAND · ${clockText}    ~___`}
           </pre>
         )}
         <div className="mt-5 text-xs tabular-nums" style={{ color: palette.fg }}>
           Idle RAM cleaned · {idleRam.totalIdleMb} MB / {config.nixSystem.ramIdleLimitMb} MB
         </div>
         <div className="mt-2 text-[11px]" style={{ color: palette.muted }}>
-          Press any key or click anywhere to return to Niri Wayland
+          Press any key or click anywhere to return to KDE Plasma 6 Wayland
         </div>
       </div>
     );
@@ -968,7 +1111,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--os-accent)]">
-            Interactive Wayland Simulator · Niri Only · Zero GUI Window Buttons
+            Interactive Wayland Simulator · Optimized Plasma 6 · Native System Settings
           </p>
           <h1 className="text-xl font-semibold text-[var(--os-fg)]">
             Live OS Preview
@@ -978,14 +1121,14 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setPhase('desktop-niri')}
+            onClick={() => setPhase('desktop-plasma')}
             className={`os-control border px-3 py-1.5 text-xs font-medium ${
-              phase === 'desktop-niri'
+              phase === 'desktop-plasma'
                 ? 'border-[var(--os-accent)] bg-[var(--os-surface-elevated)] text-[var(--os-accent)]'
                 : 'border-[var(--os-border)] bg-[var(--os-surface)] text-[var(--os-muted)]'
             }`}
           >
-            Niri Wayland Desktop
+            Plasma 6 Wayland Desktop
           </button>
           <button
             type="button"
@@ -996,7 +1139,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
                 : 'border-[var(--os-border)] bg-[var(--os-surface)] text-[var(--os-muted)]'
             }`}
           >
-            First-Boot Installer TUI
+            First-Boot Wizard
           </button>
           <button
             type="button"
@@ -1044,7 +1187,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
                       : ` Optional exFAT partition: ${partitions.exfatTransferGb} GB.`}
                   </p>
                   <div className="os-control grid gap-2 border p-4 sm:grid-cols-2" style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
-                    <div>Compositor: <strong>Niri Wayland (auto-start)</strong></div>
+                    <div>Desktop: <strong>KDE Plasma 6 Wayland (auto-login)</strong></div>
                     <div>Font: <strong>JetBrains Mono</strong></div>
                     <div>Idle RAM Baseline: <strong style={{ color: palette.accent }}>{idleRam.totalIdleMb} MB (&lt;500 MB)</strong></div>
                     <div>Nix Version: <strong>{config.nixSystem.useLatestNixPackage ? 'nixVersions.latest' : 'channel default'}</strong></div>
@@ -1194,31 +1337,31 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
                 <button
                   type="button"
                   onClick={() => {
-                    setPhase('desktop-niri');
-                    notify('First-boot complete — Niri Wayland session started');
+                    setPhase('desktop-plasma');
+                    notify('First-boot complete — Optimized KDE Plasma 6 Wayland session active');
                   }}
                   className="os-control px-4 py-2 font-semibold"
                   style={{ backgroundColor: palette.accent, color: palette.accentFg }}
                 >
-                  Boot into Niri Wayland →
+                  Boot into Plasma 6 Wayland →
                 </button>
               )}
             </div>
           </div>
         ) : (
-          /* NIRI WAYLAND DESKTOP (DEFAULT ON START) */
+          /* OPTIMIZED KDE PLASMA 6 WAYLAND DESKTOP (DEFAULT ON START) */
           <div
             className="relative flex min-h-[560px] flex-col justify-between"
             style={wallpaperStyle}
           >
-            {/* Top Auto-Hide Edge Trigger & Taskbar */}
+            {/* Top Auto-Hide Edge Trigger & Floating Plasma Panel */}
             {config.appearance.barPosition === 'top' && (
               <div onMouseEnter={handleRevealBar} className="relative z-20 min-h-[14px]">
                 {renderTaskbar()}
               </div>
             )}
 
-            {/* Main Niri Scrollable Tiling Viewport */}
+            {/* Main Plasma 6 Wayland Viewport */}
             <div
               className="relative z-10 flex flex-1 flex-col p-3"
               style={{ gap: `${config.appearance.windowGapPx}px` }}
@@ -1234,11 +1377,11 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
                     }}
                   >
                     <div className="text-xs font-semibold" style={{ color: palette.fg }}>
-                      Clean Niri Wayland Canvas · {idleRam.totalIdleMb} MB Idle RAM
+                      Clean KDE Plasma 6 Wayland Canvas · {idleRam.totalIdleMb} MB Idle RAM
                     </div>
                     <p className="mt-1 text-[11px]" style={{ color: palette.muted }}>
-                      Zero background clutter. Open a TUI window below or press{' '}
-                      <code style={{ color: palette.accent }}>Alt+/</code> for shortcuts.
+                      Zero background clutter. Open System Settings from the floating panel, or press{' '}
+                      <code style={{ color: palette.accent }}>Alt+/</code> for unified shortcuts.
                     </p>
                   </div>
                 </div>
@@ -1327,7 +1470,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
             {/* Theme-Synced TUI Screensaver Overlay */}
             {screensaverActive && renderScreensaver()}
 
-            {/* Shortcut Search TUI Overlay */}
+            {/* Single Unified Shortcut Menu Overlay */}
             {showShortcutSearch && (
               <div
                 className="absolute inset-0 z-30 flex items-center justify-center p-4 backdrop-blur-sm"
@@ -1342,7 +1485,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
                 >
                   <div className="mb-3 flex items-center justify-between text-xs">
                     <span className="font-semibold" style={{ color: palette.accent }}>
-                      Fuzzel Shortcut Search (~/SHORTCUTS.txt)
+                      Unified Plasma 6 Shortcuts (kglobalshortcutsrc · ~/SHORTCUTS.txt)
                     </span>
                     <button
                       type="button"
@@ -1358,7 +1501,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
                     autoFocus
                     value={shortcutQuery}
                     onChange={(e) => setShortcutQuery(e.target.value)}
-                    placeholder="Filter shortcuts (close, expand, taskbar, screensaver, yazi)..."
+                    placeholder="Filter unified shortcuts (close, settings, krunner, screensaver, dolphin)..."
                     className="os-control mb-3 w-full border px-3 py-2 text-xs focus:outline-none"
                     style={{
                       backgroundColor: palette.bg,
@@ -1507,13 +1650,13 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
       </div>
 
       {/* External App Launcher & Keyboard-Only Window Action Strip (Outside Simulated OS Chrome) */}
-      {phase === 'desktop-niri' && (
+      {phase === 'desktop-plasma' && (
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {/* Open TUI / App Windows & Local Projects */}
+          {/* Open Plasma Apps & Active RAM Project */}
           <div className="os-card border border-[var(--os-border)] bg-[var(--os-surface)] p-3.5">
             <div className="mb-2 flex items-center justify-between text-[11px]">
               <span className="font-semibold uppercase tracking-wider text-[var(--os-fg)]">
-                Launch Apps & Active RAM Project
+                Launch Apps &amp; Active RAM Project
               </span>
               <span className="tabular-nums text-[var(--os-muted)]">
                 Current RAM: <strong className="text-[var(--os-accent)]">{currentRamMb} MB</strong>
@@ -1522,10 +1665,10 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
             <div className="flex flex-wrap gap-1.5">
               {(
                 [
+                  { id: 'system-settings', label: 'System Settings', icon: <Settings2 className="h-3 w-3" /> },
+                  { id: 'terminal', label: 'Konsole', icon: <Terminal className="h-3 w-3" /> },
                   { id: 'neovim', label: 'Neovim', icon: <Terminal className="h-3 w-3" /> },
-                  { id: 'terminal', label: 'Foot Shell', icon: <Terminal className="h-3 w-3" /> },
-                  { id: 'hardware', label: 'Hardware TUI', icon: <Cpu className="h-3 w-3" /> },
-                  { id: 'settings-tui', label: 'Settings TUI', icon: <Settings2 className="h-3 w-3" /> },
+                  { id: 'hardware', label: 'Hardware', icon: <Cpu className="h-3 w-3" /> },
                   { id: 'firefox', label: 'Firefox', icon: <Globe className="h-3 w-3" /> },
                   { id: 'localsend', label: 'LocalSend', icon: <Send className="h-3 w-3" /> },
                   { id: 'obs', label: 'OBS', icon: <Video className="h-3 w-3" /> },
@@ -1630,7 +1773,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
                 }}
                 className="os-control border border-[var(--os-border)] bg-[var(--os-bg)] px-2.5 py-1 text-[var(--os-fg)] hover:border-[var(--os-accent)]"
               >
-                Taskbar ({formatHotkeyCombo(config.hotkeys.toggleStatusBar)})
+                Toggle Panel
               </button>
               <button
                 type="button"
@@ -1638,7 +1781,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
                 className="os-control inline-flex items-center gap-1 border border-[var(--os-border)] bg-[var(--os-bg)] px-2.5 py-1 text-[var(--os-fg)] hover:border-[var(--os-accent)]"
               >
                 <Search className="h-3 w-3 text-[var(--os-accent)]" />
-                Shortcuts ({formatHotkeyCombo(config.hotkeys.shortcutSearch)})
+                Unified Shortcuts ({formatHotkeyCombo(config.hotkeys.shortcutSearch)})
               </button>
               <button
                 type="button"
@@ -1660,7 +1803,7 @@ ___~    MONOLITH NIXOS · NIRI WAYLAND · ${clockText}    ~___`}
             <div className="mt-2 flex items-center gap-1 text-[10px] text-[var(--os-muted)]">
               <Plus className="h-3 w-3 text-[var(--os-accent)]" />
               <span>
-                Zero [minimize, expand, close] buttons exist on any window inside the Niri monitor above.
+                Zero [minimize, expand, close] buttons on windows via KWin (ButtonsOnLeft= / ButtonsOnRight=).
               </span>
             </div>
           </div>

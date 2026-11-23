@@ -1,13 +1,10 @@
-import {
-  DEFAULT_CUSTOM_SHORTCUTS,
-  DEFAULT_HOTKEYS,
-  DEFAULT_OS_CONFIG,
-} from './osDefaults';
+import { DEFAULT_OS_CONFIG } from './osDefaults';
 import type { OSConfigState } from './types';
 
-const STORAGE_KEY = 'monolith_os_config_v3';
+const STORAGE_KEY = 'monolith_os_config_v4';
 
 export function loadOSConfig(): OSConfigState {
+  if (typeof window === 'undefined') return DEFAULT_OS_CONFIG;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_OS_CONFIG;
@@ -15,38 +12,38 @@ export function loadOSConfig(): OSConfigState {
     return {
       ...DEFAULT_OS_CONFIG,
       ...parsed,
-      defaultCompositor: 'niri',
+      defaultCompositor: 'plasma6',
       appearance: {
         ...DEFAULT_OS_CONFIG.appearance,
-        ...(parsed.appearance ?? {}),
+        ...(parsed.appearance || {}),
       },
       nixSystem: {
         ...DEFAULT_OS_CONFIG.nixSystem,
-        ...(parsed.nixSystem ?? {}),
+        ...(parsed.nixSystem || {}),
       },
       storage: {
         ...DEFAULT_OS_CONFIG.storage,
-        ...(parsed.storage ?? {}),
-      },
-      exportPaths: {
-        ...DEFAULT_OS_CONFIG.exportPaths,
-        ...(parsed.exportPaths ?? {}),
-      },
-      browser: {
-        ...DEFAULT_OS_CONFIG.browser,
-        ...(parsed.browser ?? {}),
-      },
-      hardware: {
-        ...DEFAULT_OS_CONFIG.hardware,
-        ...(parsed.hardware ?? {}),
+        ...(parsed.storage || {}),
       },
       hotkeys: {
-        ...DEFAULT_HOTKEYS,
-        ...(parsed.hotkeys ?? {}),
+        ...DEFAULT_OS_CONFIG.hotkeys,
+        ...(parsed.hotkeys || {}),
       },
       customShortcuts: Array.isArray(parsed.customShortcuts)
         ? parsed.customShortcuts
-        : DEFAULT_CUSTOM_SHORTCUTS,
+        : DEFAULT_OS_CONFIG.customShortcuts,
+      exportPaths: {
+        ...DEFAULT_OS_CONFIG.exportPaths,
+        ...(parsed.exportPaths || {}),
+      },
+      browser: {
+        ...DEFAULT_OS_CONFIG.browser,
+        ...(parsed.browser || {}),
+      },
+      hardware: {
+        ...DEFAULT_OS_CONFIG.hardware,
+        ...(parsed.hardware || {}),
+      },
     };
   } catch {
     return DEFAULT_OS_CONFIG;
@@ -54,18 +51,21 @@ export function loadOSConfig(): OSConfigState {
 }
 
 export function saveOSConfig(config: OSConfigState): void {
+  if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
   } catch {
-    // Ignore quota or storage restriction failures gracefully
+    // Ignore quota errors in sandboxed preview environments
   }
 }
 
 export function clearOSConfig(): OSConfigState {
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // Ignore storage restriction failures
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
   }
   return DEFAULT_OS_CONFIG;
 }

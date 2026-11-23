@@ -26,7 +26,7 @@ export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$HOME/.cargo/bin:$HO
 
 clear
 echo "================================================================="
-echo "  MONOLITH NIXOS — PRE-DESKTOP FIRST-BOOT SETUP (NIRI WAYLAND)"
+echo "  MONOLITH NIXOS — FIRST-BOOT SETUP (OPTIMIZED PLASMA 6 WAYLAND)"
 echo "================================================================="
 echo ""
 
@@ -77,8 +77,8 @@ else
     [[ "$ONLINE" == "1" ]] && break
     if ! dialog --clear --backtitle "Monolith NixOS — First-Boot Setup" \
       --title " Still Offline " \
-      --yes-label "Retry Wi-Fi" --no-label "Continue to Niri Desktop" \
-      --yesno "No internet connection detected yet.\n\nRetry Wi-Fi now, or boot straight into Niri Wayland?\n(Run 'monolith-firstboot --force' anytime once online.)" 10 68; then
+      --yes-label "Retry Wi-Fi" --no-label "Continue to Plasma 6 Desktop" \
+      --yesno "No internet connection detected yet.\n\nRetry Wi-Fi now, or continue to KDE Plasma 6 Wayland?\n(Run 'monolith-firstboot --force' anytime once online.)" 10 68; then
       break
     fi
   done
@@ -277,7 +277,7 @@ echo "{\"lsp_servers\": [$LSP_JSON], \"windows_exe\": ''${INSTALL_WINDOWS_EXE}}"
 
 touch "$STAMP_FILE"
 sync
-echo "Setup complete! Launching Niri Wayland desktop..."
+echo "Setup complete! Optimized KDE Plasma 6 Wayland is ready."
 
   '';
 
@@ -388,7 +388,7 @@ if [[ "''${1:-}" == "--render" ]]; then
     MEM_MB=$(free -m | awk '/^Mem:/ {print $3}')
     clear
     tput cup $((MID_R - 3)) $(( (COLS - 28) / 2 ))
-    printf "\033[1;36mMONOLITH NIXOS · NIRI WAYLAND\033[0m"
+    printf "\033[1;36mMONOLITH NIXOS · PLASMA 6 WAYLAND\033[0m"
     tput cup $((MID_R - 1)) $(( (COLS - ''${#NOW}) / 2 ))
     printf "\033[1;37m%s\033[0m" "$NOW"
     tput cup $((MID_R + 1)) $(( (COLS - ''${#DAY}) / 2 ))
@@ -403,9 +403,13 @@ if [[ "''${1:-}" == "--render" ]]; then
   exit 0
 fi
 
-# Clean idle RAM before displaying TUI screensaver
+# Clean idle RAM before locking / screensaver
 monolith-ram-clean --quiet || true
-exec foot --fullscreen --title="Monolith Screensaver" monolith-screensaver --render
+if [[ -n "''${WAYLAND_DISPLAY:-}" ]] && command -v loginctl >/dev/null 2>&1; then
+  loginctl lock-session >/dev/null 2>&1 || exec konsole --fullscreen -e monolith-screensaver --render
+else
+  exec konsole --fullscreen -e monolith-screensaver --render
+fi
 
   '';
 
@@ -417,7 +421,7 @@ export DIALOGRC="$HOME/.dialogrc"
 
 if [[ "''${1:-}" == "--bar" ]]; then
   USB_CNT=$(lsblk -dnpo TRAN 2>/dev/null | grep -c '^usb$' || true)
-  HDMI_OUT=$(wlr-randr 2>/dev/null | grep -E '^(HDMI|DP)-' | head -n 1 | awk '{print $1}' || true)
+  HDMI_OUT=$(kscreen-doctor -o 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -oE '(HDMI|DP)-[A-Za-z0-9-]+' | head -n 1 || true)
   [[ -n "$HDMI_OUT" ]] && HDMI_TXT="$HDMI_OUT" || HDMI_TXT="eDP"
   echo "USB:''${USB_CNT} ''${HDMI_TXT}"
   exit 0
@@ -426,8 +430,8 @@ fi
 CHOICE=$(dialog --clear --backtitle "Monolith NixOS — Hardware & Ports TUI" \
   --title " USB · HDMI · Wi-Fi · Bluetooth · Idle RAM " \
   --stdout --menu "Select a hardware subsystem to inspect or configure:" 16 74 7 \
-  "usb"    "USB Ports & Removable Drives (lsusb + lsblk + udiskie)" \
-  "hdmi"   "HDMI / DisplayPort Monitors & Audio (wlr-randr + wpctl)" \
+  "usb"    "USB Ports & Removable Drives (lsusb + lsblk + udisks2)" \
+  "hdmi"   "HDMI / DisplayPort Monitors & Audio (kscreen-doctor + wpctl)" \
   "wifi"   "Wi-Fi & Ethernet Networks (nmtui)" \
   "bt"     "Bluetooth Devices & Audio (bluetui)" \
   "ram"    "Inspect & Clean Idle RAM (< 500 MB budget)" \
@@ -446,7 +450,7 @@ case "$CHOICE" in
   hdmi)
     clear
     echo "=== WAYLAND DISPLAYS (HDMI / DP / eDP) ==="
-    wlr-randr || true
+    kscreen-doctor -o 2>/dev/null || wlr-randr 2>/dev/null || true
     echo ""
     echo "=== PIPEWIRE AUDIO SINKS (HDMI / SPEAKERS / BT) ==="
     wpctl status || true
@@ -476,41 +480,12 @@ esac
 
   monolithSettings = pkgs.writeShellScriptBin "monolith-settings" ''
 #!/usr/bin/env bash
-# Monolith NixOS — Dedicated Theme-Synced TUI Settings Center (Super + ,)
+# Monolith NixOS — Graphical System Settings Launcher (Super + ,)
 set -uo pipefail
-export DIALOGRC="$HOME/.dialogrc"
-
-ACTION=$(dialog --clear --backtitle "Monolith NixOS — Settings TUI (Obsidian Matte)" \
-  --title " Monolith NixOS Dedicated Settings " \
-  --stdout --menu "Modify any OS setting directly on your pendrive:" 18 76 10 \
-  "theme"      "Theme, Wallpaper, Rounded Corners & Window Transparency" \
-  "taskbar"    "Auto-Hiding Taskbar (Waybar position, height, auto-hide)" \
-  "shortcuts"  "Keyboard Shortcuts & Custom App Shortcuts (Niri config.kdl)" \
-  "nix"        "NixOS Channel (nixos-unstable) & Latest Nix Version" \
-  "globalpkg"  "Install / Remove Global Nix Packages (monolith-pkg)" \
-  "project"    "Create Project with Local RAM-Only Packages" \
-  "hardware"   "USB, HDMI, Wi-Fi, Bluetooth & Idle RAM Sweeper" \
-  "screensaver""Launch Theme-Synced TUI Screensaver Now" \
-  "exe"        "Install / Check Windows (.exe) Support (Wine)" \
-  "status"     "USB Persistence Status (MONOLITH_PERSIST)") || exit 0
-
-case "$ACTION" in
-  theme)      exec monolith-config niri ;;
-  taskbar)    exec monolith-config waybar ;;
-  shortcuts)  exec monolith-config niri ;;
-  nix)        exec monolith-config flake ;;
-  globalpkg)
-    clear
-    read -rp "Enter nixpkgs package name to install globally (e.g. ripgrep, vlc, zig): " PKG
-    [[ -n "$PKG" ]] && monolith-pkg install "$PKG"
-    read -rp "Press Enter to close..." _ || true
-    ;;
-  project)    exec monolith-new-project ;;
-  hardware)   exec monolith-hardware ;;
-  screensaver) exec monolith-screensaver ;;
-  exe)        monolith-pkg install wineWowPackages.stable && monolith-pkg install winetricks ;;
-  status)     monolith-persist-usb --status; read -rp "Press Enter..." _ || true ;;
-esac
+if [[ -n "''${WAYLAND_DISPLAY:-}" || -n "''${DISPLAY:-}" ]] && command -v systemsettings >/dev/null 2>&1; then
+  exec systemsettings "$@"
+fi
+exec monolith-config
 
   '';
 
@@ -816,55 +791,61 @@ echo "Persistence ready at /persist ($PERSIST_DEV — $(df -h /persist | awk 'NR
 
   monolithShortcutMenu = pkgs.writeShellScriptBin "monolith-shortcut-menu" ''
 #!/usr/bin/env bash
-# Monolith NixOS — Interactive Searchable Shortcut Menu (Super + /)
+# Monolith NixOS — Single Unified Shortcut Reference (Super + /)
 set -euo pipefail
 SHORTCUT_FILE="$HOME/SHORTCUTS.txt"
 [[ -f "$SHORTCUT_FILE" ]] || { echo "SHORTCUTS.txt missing"; exit 1; }
-grep -E '\|' "$SHORTCUT_FILE" | fuzzel --dmenu --prompt="Shortcuts > " --width=78 --lines=18 >/dev/null || true
-
-  '';
-
-  monolithToggleWindows = pkgs.writeShellScriptBin "monolith-toggle-windows" ''
-#!/usr/bin/env bash
-# Monolith NixOS — Niri Keyboard-Only Minimize / Hide-All Window Helper
-set -euo pipefail
-MODE="''${1:-toggle-all}"
-STATE_FILE="/tmp/monolith-windows-hidden"
-
-if [[ "$MODE" == "minimize-focused" ]]; then
-  niri msg action move-column-to-workspace 98
+if [[ -t 1 ]]; then
+  cat "$SHORTCUT_FILE"
+  echo ""
+  read -rp "Press Enter to close (or run systemsettings -> Shortcuts to edit visually)..." _ || true
 else
-  if [[ -f "$STATE_FILE" ]]; then
-    niri msg action focus-workspace-previous
-    rm -f "$STATE_FILE"
-  else
-    niri msg action focus-workspace 99
-    touch "$STATE_FILE"
-  fi
+  exec konsole --hold -e bash -lc 'cat "$HOME/SHORTCUTS.txt"; echo ""; echo "Tip: Press Super + , (System Settings -> Keyboard -> Shortcuts) to edit or add any shortcut."'
 fi
 
   '';
 
-  monolithSessionLaunch = pkgs.writeShellScriptBin "monolith-session-launch" ''
+  monolithPlasmaInit = pkgs.writeShellScriptBin "monolith-plasma-init" ''
 #!/usr/bin/env bash
-# Monolith NixOS — Pre-Desktop First-Boot Hook + Direct Niri Wayland Session Launcher
+# Monolith NixOS — Apply Rounded Floating Auto-Hide Panel, Minimal Wallpaper & First-Boot Hook
 set -uo pipefail
 
-export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$HOME/.cargo/bin:$HOME/go/bin:$PATH"
-export XDG_SESSION_TYPE="wayland"
-export XDG_CURRENT_DESKTOP="niri"
-export MOZ_ENABLE_WAYLAND="1"
-monolith-firstboot || true
+STATE_FLAG="$HOME/.config/monolith/.plasma-layout-applied"
+QDBUS_BIN="$(command -v qdbus || command -v qdbus6 || true)"
 
-if grep -qE '^[[:space:]]*MONOLITH_AUTO_UPDATE="?true"?' /persist/monolith-boot.conf /etc/monolith/boot.conf 2>/dev/null; then
-  (monolith-update --check > "$HOME/monolith-update.log" 2>&1 &) || true
+for _ in $(seq 1 25); do
+  if [[ -n "$QDBUS_BIN" ]] && "$QDBUS_BIN" org.kde.plasmashell /PlasmaShell >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.4
+done
+
+if [[ ! -f "$STATE_FLAG" ]]; then
+  if [[ "obsidian-horizon" != "solid-matte" && -f "/home/dev/.config/monolith/wallpaper.svg" ]] && command -v plasma-apply-wallpaperimage >/dev/null 2>&1; then
+    plasma-apply-wallpaperimage "/home/dev/.config/monolith/wallpaper.svg" >/dev/null 2>&1 || true
+  fi
+
+  if [[ -n "$QDBUS_BIN" ]]; then
+    "$QDBUS_BIN" org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript '
+      var allPanels = panels();
+      for (var i = 0; i < allPanels.length; i++) {
+        var p = allPanels[i];
+        p.floating = true;
+        p.location = "bottom";
+        p.height = 42;
+        p.hiding = "autohide";
+      }
+    ' >/dev/null 2>&1 || true
+  fi
+
+  mkdir -p "$HOME/.config/monolith"
+  touch "$STATE_FLAG"
 fi
 
-clear
-if [[ $# -gt 0 ]]; then
-  exec "$@"
-else
-  exec niri-session
+if [[ ! -f "$HOME/.config/monolith/.firstboot-complete" ]]; then
+  if ! grep -qE '^[[:space:]]*MONOLITH_SKIP_WIZARD="?true"?' /persist/monolith-boot.conf /etc/monolith/boot.conf 2>/dev/null; then
+    konsole -e monolith-firstboot &
+  fi
 fi
 
   '';
@@ -907,14 +888,14 @@ if [[ -z "$TARGET" ]]; then
   TARGET=$(dialog --clear --backtitle "Monolith NixOS — Pendrive Config Editor" \
     --title " Edit Persistent Configs on MONOLITH_PERSIST " \
     --stdout --menu "Select a configuration file stored on your USB pendrive:" 17 76 8 \
-    "packages" "NixOS Global Packages (/etc/nixos/user-packages.nix)" \
-    "nix"      "NixOS System Config (/etc/nixos/configuration.nix)" \
-    "flake"    "NixOS Flake Definition (/etc/nixos/flake.nix)" \
-    "niri"     "Niri Scrollable Wayland (~/.config/niri/config.kdl)" \
-    "waybar"   "Auto-Hide Taskbar (~/.config/waybar/config.jsonc)" \
-    "foot"     "Foot Terminal Theme (~/.config/foot/foot.ini)" \
-    "nvim"     "Neovim IDE Config (~/.config/nvim/init.lua)" \
-    "status"   "Check USB Pendrive Persistence & Free Space") || exit 0
+    "packages"  "NixOS Global Packages (/etc/nixos/user-packages.nix)" \
+    "nix"       "NixOS System Config (/etc/nixos/configuration.nix)" \
+    "flake"     "NixOS Flake Definition (/etc/nixos/flake.nix)" \
+    "shortcuts" "Plasma 6 Global Shortcuts (~/.config/kglobalshortcutsrc)" \
+    "kwin"      "KWin Window Rules & Buttons (~/.config/kwinrc)" \
+    "theme"     "Plasma 6 Unified Theme & Fonts (~/.config/kdeglobals)" \
+    "nvim"      "Neovim IDE Config (~/.config/nvim/init.lua)" \
+    "status"    "Check USB Pendrive Persistence & Free Space") || exit 0
 fi
 
 open_and_sync() {
@@ -933,16 +914,16 @@ case "$TARGET" in
   packages|user-packages) open_and_sync "/etc/nixos/user-packages.nix" ;;
   nix|nixos|config)       open_and_sync "/etc/nixos/configuration.nix" ;;
   flake)                  open_and_sync "/etc/nixos/flake.nix" ;;
-  niri)                   open_and_sync "$HOME/.config/niri/config.kdl" ;;
-  waybar)                 open_and_sync "$HOME/.config/waybar/config.jsonc" ;;
-  foot)                   open_and_sync "$HOME/.config/foot/foot.ini" ;;
+  shortcuts)              open_and_sync "$HOME/.config/kglobalshortcutsrc" ;;
+  kwin)                   open_and_sync "$HOME/.config/kwinrc" ;;
+  theme)                  open_and_sync "$HOME/.config/kdeglobals" ;;
   nvim|neovim)            open_and_sync "$HOME/.config/nvim/init.lua" ;;
   status)
     monolith-persist-usb --status
     read -rp "Press Enter to close..." _ || true
     ;;
   *)
-    echo "Usage: monolith-config [packages|nix|flake|niri|waybar|foot|nvim|status]"
+    echo "Usage: monolith-config [packages|nix|flake|shortcuts|kwin|theme|nvim|status]"
     exit 1
     ;;
 esac
@@ -1059,13 +1040,28 @@ echo "[OK] Created RAM-only local project at $PROJ_DIR (local pkgs load on cd & 
 
   monolithScreenshot = pkgs.writeShellScriptBin "monolith-screenshot" ''
 #!/usr/bin/env bash
-# Monolith NixOS — Native Wayland Screenshot Utility (grim + slurp + wl-copy)
+# Monolith NixOS — Native Plasma 6 Wayland Screenshot Utility (spectacle + fallback)
 set -euo pipefail
 
 MODE="''${1:-region}"
 SHOT_DIR="$HOME/Pictures/Screenshots"
 mkdir -p "$SHOT_DIR"
 OUT_FILE="''${SHOT_DIR}/monolith-$(date +%Y%m%d-%H%M%S).png"
+
+if command -v spectacle >/dev/null 2>&1; then
+  case "$MODE" in
+    region)    spectacle -b -r -n -o "$OUT_FILE" -c ;;
+    full)      spectacle -b -f -n -o "$OUT_FILE" -c ;;
+    clipboard) spectacle -b -r -n -c; exit 0 ;;
+    *)
+      echo "Usage: monolith-screenshot [region|full|clipboard]"
+      exit 1
+      ;;
+  esac
+  sync
+  echo "Screenshot saved to $OUT_FILE and copied to clipboard."
+  exit 0
+fi
 
 case "$MODE" in
   region)
@@ -1252,9 +1248,10 @@ fi
 
 if [[ -n "$CFG_KEYMAP" && "$CFG_KEYMAP" =~ ^[a-z]{2,8}$ ]]; then
   loadkeys "$CFG_KEYMAP" 2>/dev/null || true
-  if [[ -f "/home/''${TARGET_USER}/.config/niri/config.kdl" ]]; then
-    sed -i -E 's/(xkb \{ layout ")[^"]+("; \})/\1'"''${CFG_KEYMAP}"'\2/' "/home/''${TARGET_USER}/.config/niri/config.kdl" 2>/dev/null || true
-  fi
+  mkdir -p "/home/''${TARGET_USER}/.config"
+  printf '[Layout]\nLayoutList=%s\nUse=true\n' "$CFG_KEYMAP" > "/home/''${TARGET_USER}/.config/kxkbrc"
+  TARGET_GROUP=$(id -gn "$TARGET_USER" 2>/dev/null || echo "users")
+  chown "''${TARGET_USER}:''${TARGET_GROUP}" "/home/''${TARGET_USER}/.config/kxkbrc" 2>/dev/null || true
 fi
 
 if [[ -n "$CFG_WIFI_SSID" ]]; then
@@ -1323,244 +1320,355 @@ USER_PKGS_EOF
   '';
 
   monolithSkel = pkgs.runCommand "monolith-skel" {} ''
-    mkdir -p $out/.config/niri $out/.config/waybar $out/.config/foot $out/.config/fuzzel $out/.config/nvim $out/.config/gtk-3.0 $out/.config/gtk-4.0 $out/.config/monolith $out/.mozilla/firefox/monolith.default
+    mkdir -p $out/.config/autostart $out/.config/nvim $out/.config/gtk-3.0 $out/.config/gtk-4.0 $out/.config/monolith $out/.local/share/konsole $out/.local/share/applications $out/.mozilla/firefox/monolith.default
 
-    cat > $out/.config/niri/config.kdl <<'MONOLITH_EOF'
-// Monolith NixOS — Niri Scrollable Wayland Compositor Configuration
-// Theme: Obsidian Matte | Font: JetBrains Mono | Radius: 10px | Opacity: 0.9
-// Zero GUI [minimize/expand/close] buttons — 100% keyboard-driven window lifecycle
+    cat > $out/.config/kdeglobals <<'MONOLITH_EOF'
+[General]
+ColorScheme=MonolithUnified
+Name=MonolithUnified
+TerminalApplication=konsole
+TerminalService=org.kde.konsole.desktop
+font=JetBrains Mono,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+fixed=JetBrains Mono,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+menuFont=JetBrains Mono,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+toolBarFont=JetBrains Mono,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+smallestReadableFont=JetBrains Mono,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
 
-spawn-at-startup "swaybg" "-m" "fill" "-i" "/home/dev/.config/monolith/wallpaper.svg"
-spawn-at-startup "waybar"
-spawn-at-startup "swayidle" "-w" "timeout" "300" "monolith-screensaver --idle" "timeout" "330" "monolith-ram-clean --quiet"
-spawn-at-startup "udiskie" "--no-tray" "--automount"
-spawn-at-startup "kanshi"
-spawn-at-startup "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1"
+[KDE]
+AnimationDurationFactor=0.5
+LookAndFeelPackage=org.kde.breezedark.desktop
+SingleClick=false
+widgetStyle=breeze
 
-// Strictly disable client-side decorations (removes GUI minimize/expand/close buttons)
-prefer-no-csd
+[WM]
+activeBackground=23,23,28
+activeBlend=56,189,248
+activeForeground=244,244,245
+inactiveBackground=17,17,20
+inactiveBlend=161,161,170
+inactiveForeground=161,161,170
 
-layout {
-    gaps 8
-    center-focused-column "never"
+[Colors:Window]
+BackgroundAlternate=23,23,28
+BackgroundNormal=17,17,20
+DecorationFocus=56,189,248
+DecorationHover=56,189,248
+ForegroundActive=56,189,248
+ForegroundInactive=161,161,170
+ForegroundLink=56,189,248
+ForegroundNormal=244,244,245
 
-    default-column-width { proportion 0.5; }
+[Colors:View]
+BackgroundAlternate=17,17,20
+BackgroundNormal=9,9,11
+DecorationFocus=56,189,248
+DecorationHover=56,189,248
+ForegroundActive=56,189,248
+ForegroundInactive=161,161,170
+ForegroundLink=56,189,248
+ForegroundNormal=244,244,245
 
-    focus-ring {
-        width 1
-        active-color "#38BDF8"
-        inactive-color "#232329"
-    }
+[Colors:Button]
+BackgroundAlternate=17,17,20
+BackgroundNormal=23,23,28
+DecorationFocus=56,189,248
+DecorationHover=56,189,248
+ForegroundActive=56,189,248
+ForegroundInactive=161,161,170
+ForegroundNormal=244,244,245
 
-    background-color "#09090B"
-}
-
-window-rule {
-    geometry-corner-radius 10.0
-    clip-to-geometry true
-    opacity 0.90
-}
-
-input {
-    keyboard {
-        xkb { layout "us"; }
-    }
-    touchpad {
-        tap
-        natural-scroll
-        dwt
-    }
-}
-
-binds {
-    // Auto-Hiding Wayland Taskbar Toggle (Super + S)
-    Mod+S { spawn "pkill" "-SIGUSR1" "waybar"; }
-
-    // Keyboard-Only Window Controls (NO GUI minimize / expand / close buttons)
-    Mod+Q { close-window; }
-    Mod+F { maximize-column; }
-    Mod+M { spawn "monolith-toggle-windows" "minimize-focused"; }
-    Mod+D { spawn "monolith-toggle-windows" "toggle-all"; }
-
-    // TUI System Control, Shortcuts & Screensaver
-    Mod+Slash { spawn "monolith-shortcut-menu"; }
-    Mod+Comma { spawn "foot" "-T" "Monolith Settings TUI" "monolith-settings"; }
-    Mod+Shift+L { spawn "monolith-screensaver"; }
-
-    // Core Applications & Project Workflow
-    Mod+Return { spawn "foot" "-D" "/home/dev/workspace"; }
-    Mod+N { spawn "foot" "-D" "/home/dev/workspace" "nvim"; }
-    Mod+B { spawn "firefox"; }
-    Mod+O { spawn "obs"; }
-    Mod+L { spawn "localsend_app"; }
-    Mod+Alt+N { spawn "foot" "-T" "Monolith New Project (Local RAM Pkgs)" "monolith-new-project"; }
-    Mod+Shift+BackSpace { spawn "foot" "-T" "Monolith Project Reset" "monolith-reset"; }
-
-    // Hardware, Config & Utility TUIs
-    Mod+Alt+H { spawn "foot" "-T" "Monolith Hardware (USB/HDMI/Wi-Fi/BT)" "monolith-hardware"; }
-    Mod+Alt+B { spawn "foot" "-T" "Monolith Bluetooth" "monolith-bluetooth"; }
-    Mod+Alt+C { spawn "foot" "-T" "Monolith Pendrive Config" "monolith-config"; }
-    Mod+Alt+U { spawn "foot" "-T" "Monolith Auto-Update" "monolith-update"; }
-    Print { spawn "monolith-screenshot" "region"; }
-    Shift+Print { spawn "monolith-screenshot" "full"; }
-    Mod+Shift+S { spawn "monolith-screenshot" "region"; }
-
-    // Scrollable Tiling Column Navigation
-    Mod+H { focus-column-left; }
-    Mod+L { focus-column-right; }
-    Mod+J { focus-window-down; }
-    Mod+K { focus-window-up; }
-    Mod+Shift+H { move-column-left; }
-    Mod+Shift+L { move-column-right; }
-    Mod+1 { focus-workspace 1; }
-    Mod+2 { focus-workspace 2; }
-    Mod+3 { focus-workspace 3; }
-    Mod+4 { focus-workspace 4; }
-    Mod+5 { focus-workspace 5; }
-    Mod+Shift+E { quit; }
-
-    // Custom App Shortcut: Open Yazi TUI File Manager
-    Mod+E { spawn "sh" "-lc" "foot -T \"Yazi Files\" yazi"; }
-    // Custom App Shortcut: Open btop RAM & CPU Monitor
-    Mod+T { spawn "sh" "-lc" "foot -T \"System Monitor\" btop"; }
-}
+[Colors:Selection]
+BackgroundAlternate=56,189,248
+BackgroundNormal=56,189,248
+DecorationFocus=56,189,248
+DecorationHover=56,189,248
+ForegroundActive=4,19,28
+ForegroundInactive=4,19,28
+ForegroundNormal=4,19,28
 
 MONOLITH_EOF
 
-    cat > $out/.config/waybar/config.jsonc <<'MONOLITH_EOF'
-{
-  "layer": "top",
-  "position": "top",
-  "mode": "hide",
-  "start_hidden": false,
-  "height": 32,
-  "margin-top": 6,
-  "margin-bottom": 0,
-  "margin-left": 10,
-  "margin-right": 10,
-  "spacing": 12,
-  "modules-left": ["custom/compositor", "niri/workspaces", "custom/shortcuts-hint"],
-  "modules-center": ["cpu", "memory", "disk#persist"],
-  "modules-right": ["custom/hw-ports", "bluetooth", "network", "battery", "clock"],
+    cat > $out/.config/kwinrc <<'MONOLITH_EOF'
+[org.kde.kdecoration2]
+BorderSize=Tiny
+BorderSizeAuto=false
+ButtonsOnLeft=
+ButtonsOnRight=
+ShowToolTips=false
+library=org.kde.breeze
+theme=Breeze
 
-  "custom/compositor": {
-    "exec": "echo NIRI",
-    "interval": 60,
-    "format": "{}",
-    "on-click": "foot -T 'Monolith Settings TUI' monolith-settings"
-  },
-  "custom/shortcuts-hint": {
-    "format": "Keys: Super + /",
-    "on-click": "monolith-shortcut-menu"
-  },
-  "custom/hw-ports": {
-    "exec": "monolith-hardware --bar",
-    "interval": 5,
-    "format": "{}",
-    "on-click": "foot -T 'Monolith Hardware' monolith-hardware"
-  },
-  "cpu": {
-    "interval": 2,
-    "format": "CPU {usage}%"
-  },
-  "memory": {
-    "interval": 2,
-    "format": "RAM {used:0.2f}G"
-  },
-  "disk#persist": {
-    "interval": 15,
-    "path": "/persist",
-    "format": "USB {free}"
-  },
-  "bluetooth": {
-    "format": "BT {status}",
-    "format-connected": "BT {device_alias}",
-    "format-connected-battery": "BT {device_alias} {device_battery_percentage}%",
-    "format-off": "BT OFF",
-    "on-click": "foot -T 'Monolith Bluetooth' monolith-bluetooth"
-  },
-  "network": {
-    "format-wifi": "WIFI {essid}",
-    "format-ethernet": "ETH {ifname}",
-    "format-disconnected": "OFFLINE",
-    "on-click": "foot nmtui"
-  },
-  "battery": {
-    "format": "BAT {capacity}%"
-  },
-  "clock": {
-    "format": "{:%H:%M}"
-  }
-}
+[Compositing]
+LatencyPolicy=Low
+WindowsBlockCompositing=true
+
+[Plugins]
+blurEnabled=true
+kwin4_effect_translucencyEnabled=true
+
+[Windows]
+Placement=Centered
 
 MONOLITH_EOF
 
-    cat > $out/.config/waybar/style.css <<'MONOLITH_EOF'
-/* Monolith NixOS Waybar — JetBrains Mono, Rounded Corners, Modifiable Auto-Hide */
-* {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12px;
-  min-height: 0;
-}
+    cat > $out/.config/breezerc <<'MONOLITH_EOF'
+[Common]
+OutlineIntensity=OutlineLow
+ShadowSize=ShadowSmall
 
-window#waybar {
-  background-color: alpha(#111114, 0.90);
-  color: #F4F4F5;
-  border: 1px solid #232329;
-  border-radius: 10px;
-}
-
-#cpu, #memory, #disk, #bluetooth, #network, #battery, #clock, #custom-compositor, #custom-shortcuts-hint, #custom-hw-ports {
-  padding: 0 8px;
-  color: #F4F4F5;
-}
-
-#custom-compositor {
-  color: #38BDF8;
-  font-weight: 700;
-}
-
-#custom-shortcuts-hint, #custom-hw-ports {
-  color: #A1A1AA;
-}
+[Windeco]
+ButtonSize=ButtonSmall
+DrawBackgroundGradient=false
+DrawBorderOnMaximizedWindows=false
 
 MONOLITH_EOF
 
-    cat > $out/.config/foot/foot.ini <<'MONOLITH_EOF'
-# Monolith NixOS — Foot Wayland Terminal (JetBrains Mono + Unified Theme + Transparency)
-[main]
-font=JetBrains Mono:size=13
-pad=10x10
+    cat > $out/.config/kwinrulesrc <<'MONOLITH_EOF'
+[1]
+Description=Monolith Translucent Rounded Windows
+opacityactive=92
+opacityactiverule=2
+opacityinactive=87
+opacityinactiverule=2
+types=1
+wmclassmatch=0
 
-[colors]
-alpha=0.90
-background=111114
-foreground=F4F4F5
-regular4=38BDF8
-regular6=38BDF8
+[General]
+count=1
+rules=1
 
 MONOLITH_EOF
 
-    cat > $out/.config/fuzzel/fuzzel.ini <<'MONOLITH_EOF'
-# Monolith NixOS — Fuzzel TUI Launcher (JetBrains Mono + Unified Theme + Rounded)
-[main]
-font=JetBrains Mono:size=13
-border-radius=10
-border-width=1
+    cat > $out/.config/baloofilerc <<'MONOLITH_EOF'
+[Basic Settings]
+Indexing-Enabled=false
 
-[colors]
-background=111114ee
-text=F4F4F5ff
-match=38BDF8ff
-selection=17171Cff
-selection-text=38BDF8ff
-border=38BDF8ff
+MONOLITH_EOF
+
+    cat > $out/.config/kscreenlockerrc <<'MONOLITH_EOF'
+[Daemon]
+Autolock=true
+LockOnResume=true
+Timeout=5
+
+MONOLITH_EOF
+
+    cat > $out/.config/konsolerc <<'MONOLITH_EOF'
+[Desktop Entry]
+DefaultProfile=Monolith.profile
+
+[MainWindow]
+MenuBar=Disabled
+ToolBarsMovable=Disabled
+
+[TabBar]
+TabBarVisibility=ShowTabBarWhenNeeded
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/konsole/Monolith.profile <<'MONOLITH_EOF'
+[Appearance]
+ColorScheme=Monolith
+Font=JetBrains Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+
+[General]
+Directory=/home/dev/workspace
+Name=Monolith
+Parent=FALLBACK/
+
+[Scrolling]
+HistorySize=5000
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/konsole/Monolith.colorscheme <<'MONOLITH_EOF'
+[Background]
+Color=17,17,20
+
+[BackgroundIntense]
+Color=23,23,28
+
+[Foreground]
+Color=244,244,245
+
+[ForegroundIntense]
+Color=56,189,248
+
+[Color4]
+Color=56,189,248
+
+[Color6]
+Color=56,189,248
+
+[General]
+Blur=true
+Description=Monolith Unified Theme
+Opacity=0.92
+
+MONOLITH_EOF
+
+    cat > $out/.config/kglobalshortcutsrc <<'MONOLITH_EOF'
+[kwin]
+Window Close=Meta+Q,Alt+F4,Close Window
+Window Maximize=Meta+F,Meta+PgUp,Maximize Window
+Window Minimize=Meta+M,Meta+PgDown,Minimize Window
+Show Desktop=Meta+D,Meta+D,Peek at Desktop
+Overview=Meta+Tab,Meta+W,Toggle Overview
+
+[ksmserver]
+Lock Session=Meta+Shift+L,Meta+Shift+L\tScreensaver,Lock Session
+
+[services][org.kde.krunner.desktop]
+_launch=Meta+Space\tAlt+Space
+
+[services][systemsettings.desktop]
+_launch=Meta+,
+
+[services][monolith-terminal.desktop]
+_launch=Meta+Return
+
+[services][monolith-neovim.desktop]
+_launch=Meta+N
+
+[services][monolith-firefox.desktop]
+_launch=Meta+B
+
+[services][monolith-obs.desktop]
+_launch=Meta+O
+
+[services][monolith-localsend.desktop]
+_launch=Meta+L
+
+[services][monolith-shortcuts.desktop]
+_launch=Meta+/
+
+[services][monolith-new-project.desktop]
+_launch=Meta+Alt+N
+
+[services][monolith-reset.desktop]
+_launch=Meta+Shift+Backspace
+
+[services][monolith-custom-1.desktop]
+_launch=Meta+E
+
+[services][monolith-custom-2.desktop]
+_launch=Meta+T
+
+MONOLITH_EOF
+
+    cat > $out/.config/autostart/monolith-plasma-init.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Monolith Plasma 6 Initializer
+Exec=monolith-plasma-init
+OnlyShowIn=KDE;
+X-KDE-AutostartPhase=2
+
+MONOLITH_EOF
+
+    cat > $out/.config/autostart/org.kde.discover.notifier.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Discover Notifier
+Hidden=true
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-terminal.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Monolith Terminal
+Exec=konsole --workdir /home/dev/workspace
+Icon=utilities-terminal
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-neovim.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Monolith Neovim IDE
+Exec=konsole --workdir /home/dev/workspace -e nvim
+Icon=nvim
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-firefox.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Minimal Firefox
+Exec=firefox
+Icon=firefox
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-obs.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=OBS Studio
+Exec=obs
+Icon=com.obsproject.Studio
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-localsend.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=LocalSend File Sharing
+Exec=localsend_app
+Icon=folder-remote
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-shortcuts.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Monolith Unified Shortcuts
+Exec=monolith-shortcut-menu
+Icon=preferences-desktop-keyboard-shortcuts
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-new-project.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=New Local RAM Project
+Exec=konsole -e monolith-new-project
+Icon=folder-new
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-reset.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Monolith Project Reset
+Exec=konsole -e monolith-reset
+Icon=edit-clear-history
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-custom-1.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Open Dolphin Graphical File Manager
+Exec=sh -lc 'dolphin'
+Icon=utilities-terminal
+NoDisplay=false
+
+MONOLITH_EOF
+
+    cat > $out/.local/share/applications/monolith-custom-2.desktop <<'MONOLITH_EOF'
+[Desktop Entry]
+Type=Application
+Name=Open btop RAM & CPU Monitor
+Exec=sh -lc 'konsole -e btop'
+Icon=utilities-terminal
+NoDisplay=false
 
 MONOLITH_EOF
 
     cat > $out/.config/gtk-3.0/settings.ini <<'MONOLITH_EOF'
 [Settings]
-gtk-font-name=JetBrains Mono 13
+gtk-font-name=JetBrains Mono 12
 gtk-application-prefer-dark-theme=1
 gtk-decoration-layout=
 
@@ -1568,7 +1676,7 @@ MONOLITH_EOF
 
     cat > $out/.config/gtk-4.0/settings.ini <<'MONOLITH_EOF'
 [Settings]
-gtk-font-name=JetBrains Mono 13
+gtk-font-name=JetBrains Mono 12
 gtk-application-prefer-dark-theme=1
 gtk-decoration-layout=
 
@@ -1591,7 +1699,7 @@ headerbar button.close,
 }
 
 window, .background {
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: #111114;
   color: #F4F4F5;
 }
@@ -1615,7 +1723,7 @@ headerbar button.close,
 }
 
 window, .background {
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: #111114;
   color: #F4F4F5;
 }
@@ -1735,38 +1843,38 @@ MONOLITH_EOF
 
     cat > $out/SHORTCUTS.txt <<'MONOLITH_EOF'
 ===============================================================================
-MONOLITH NIXOS — COMPLETE KEYBOARD SHORTCUT REFERENCE
-Compositor: Niri Scrollable Wayland (Zero GUI minimize/expand/close buttons)
+MONOLITH NIXOS — UNIFIED KEYBOARD SHORTCUT REFERENCE
+Desktop: Optimized KDE Plasma 6 Wayland (Rounded Menus + Native System Settings)
 Font: JetBrains Mono  |  Theme: Obsidian Matte
-Location on OS: ~/SHORTCUTS.txt  |  Search Menu: Super + /
+Location on OS: ~/SHORTCUTS.txt  |  Edit Visually: System Settings -> Shortcuts
 ===============================================================================
 
-[1. OS, AUTO-HIDE TASKBAR, KEYBOARD-ONLY WINDOWS & CORE APPS]
-Super + S                    | Toggle Auto-Hide Taskbar — Reveal or hide the Wayland taskbar (also reveals automatically on hover)
-Super + Q                    | Close Focused Window — Keyboard-only window close (no GUI close button)
-Super + F                    | Expand / Maximize Window — Toggle full column expansion on focused window (no GUI expand button)
-Super + M                    | Minimize Focused Window — Stash focused window out of view via keyboard (no GUI minimize button)
-Super + D                    | Hide / Restore All Windows — Toggle clean wallpaper view by hiding or restoring all open windows
-Super + /                    | Shortcut Search Menu — Open fuzzy TUI shortcut menu & ~/SHORTCUTS.txt viewer
-Super + ,                    | Open Settings TUI — Launch monolith-settings TUI for theme, wallpaper, radius, opacity & packages
-Super + Return               | Open Terminal (Foot) — Spawn zero-latency JetBrains Mono Wayland terminal in ~/workspace
-Super + N                    | Launch Neovim IDE — Open pre-configured Neovim with active project LSP servers
+[1. OS, KWIN WINDOW CONTROLS (ZERO GUI BUTTONS) & CORE APPS]
+Super + Space                | App Launcher / KRunner — Open rounded graphical KRunner search & app launcher (panel auto-hides on edge hover)
+Super + Q                    | Close Focused Window — Native KWin keyboard close (no GUI close button)
+Super + F                    | Expand / Maximize Window — Native KWin maximize toggle (no GUI expand button)
+Super + M                    | Minimize Focused Window — Native KWin minimize to auto-hiding panel (no GUI minimize button)
+Super + D                    | Show / Restore Desktop — Native KWin peek-at-desktop toggle for clean wallpaper view
+Super + /                    | Unified Shortcut Menu — Single verified shortcut cheat sheet synced with System Settings -> Shortcuts
+Super + ,                    | Open Graphical System Settings — Launch native KDE Plasma 6 System Settings GUI (wallpaper, theme, shortcuts, Wi-Fi, HDMI)
+Super + Return               | Open Terminal (Konsole) — Launch JetBrains Mono Wayland terminal in ~/workspace
+Super + N                    | Launch Neovim IDE — Open pre-configured Neovim inside Konsole with active project LSP servers
 Super + B                    | Launch Minimal Firefox — Open low-memory tuned Firefox with hardware VA-API acceleration
 Super + O                    | Launch OBS Studio — Open Wayland PipeWire screen recorder pointed at your export folder
 Super + L                    | Launch LocalSend — Open local-network peer-to-peer file sharing (replaces exFAT transfer)
 Super + Alt + N              | New Project (Local RAM Pkgs) — Create a project folder with isolated on-demand RAM-only local nixpkgs
-Super + Shift + L            | Start TUI Screensaver & Clean RAM — Launch themed TUI screensaver and clear idle project packages from RAM
-Super + Shift + BackSpace    | Trigger Project Reset — Wipe workspace & toolchains while preserving Wi-Fi, Bluetooth, SSH & settings
+Super + Shift + L            | Lock Screen & Clean Idle RAM — Start themed Plasma lock/screensaver and clear idle project caches from RAM
+Super + Shift + Backspace    | Trigger Project Reset — Wipe workspace & toolchains while preserving Wi-Fi, Bluetooth, SSH & settings
 
 [2. CUSTOM APPLICATION SHORTCUTS]
-Super + E                    | Open Yazi TUI File Manager — exec: foot -T "Yazi Files" yazi
-Super + T                    | Open btop RAM & CPU Monitor — exec: foot -T "System Monitor" btop
+Super + E                    | Open Dolphin Graphical File Manager — exec: dolphin
+Super + T                    | Open btop RAM & CPU Monitor — exec: konsole -e btop
 
-[3. NIRI SCROLLABLE WAYLAND NAVIGATION]
-Super + H / J / K / L        | Focus column left / down / up / right
-Super + Shift + H / L        | Move focused column left / right
-Super + 1 .. 5               | Switch workspace 1 through 5
-Super + Shift + E            | Exit Niri session cleanly
+[3. PLASMA 6 WAYLAND WORKSPACE & PANEL CONTROLS]
+Super + Tab                  | Overview of all open windows & virtual desktops
+Super + Left / Right         | Snap focused window to left / right half of screen
+Right-Click Taskbar          | Show Panel Configuration (auto-hide, height, floating)
+Super + ,                    | Open Graphical System Settings (all visual options)
 
 [4. NEOVIM IDE (PRE-INSTALLED WITH AUTO-LSP)]
 Space + ff                   | Find files in workspace (Telescope)
@@ -1780,18 +1888,15 @@ Space + f                    | Format current buffer
 [d / ]d                      | Jump to previous / next diagnostic
 Ctrl + s                     | Save buffer
 
-[5. TUI TOOLS, PACKAGES, HARDWARE & RAM MANAGEMENT]
-monolith-settings            | Open theme-synced TUI Settings (Super + ,)
+[5. PACKAGES, RAM-ONLY PROJECTS, HARDWARE & UTILITIES]
+monolith-settings            | Open Graphical System Settings (Super + ,)
 monolith-pkg install <pkg>   | Install global app via nix profile install nixpkgs#<pkg>
 monolith-new-project         | Create project with on-demand RAM-only local packages (Super + Alt + N)
 monolith-ram-clean           | Unload idle project RAM mounts & drop pagecache (<500 MB idle)
-monolith-screensaver         | Launch themed TUI screensaver (Super + Shift + L)
-monolith-hardware            | Manage USB drives, HDMI monitors/audio, Wi-Fi & Bluetooth (Super + Alt + H)
-monolith-bluetooth           | Pair / connect Bluetooth devices via bluetui (Super + Alt + B)
+monolith-hardware            | Inspect USB, HDMI, Wi-Fi, Bluetooth & idle RAM
 monolith-exe <app.exe>       | Run Windows .exe apps via Wine (when enabled in setup/settings)
-monolith-update [--check]    | Update Nix flake, global profile & check latest GitHub ISO (Super + Alt + U)
-Print / Super + Shift + S    | Capture region screenshot -> ~/Pictures/Screenshots + clipboard
-monolith-firstboot --force   | Re-open pre-desktop setup (includes Windows .exe option)
+monolith-update [--check]    | Update Nix flake, global profile & check latest GitHub ISO
+monolith-firstboot --force   | Re-open setup wizard (includes Windows .exe option)
 monolith-reset               | Clean Project Reset (keeps Wi-Fi, Bluetooth, SSH, OS settings)
 
 MONOLITH_EOF
@@ -1800,7 +1905,7 @@ MONOLITH_EOF
 {
   "osName": "Monolith NixOS",
   "hostname": "monolith-usb",
-  "defaultCompositor": "niri",
+  "defaultCompositor": "plasma6",
   "nixSystem": {
     "channel": "nixos-unstable",
     "useLatestNixPackage": true,
@@ -1852,16 +1957,16 @@ MONOLITH_EOF
     "theme": "obsidian-matte",
     "wallpaper": "obsidian-horizon",
     "customWallpaperPath": "",
-    "fontSizePx": 13,
-    "cornerRadiusPx": 10,
-    "windowOpacity": 0.9,
+    "fontSizePx": 12,
+    "cornerRadiusPx": 12,
+    "windowOpacity": 0.92,
     "borderWidthPx": 1,
     "windowGapPx": 8,
-    "barPosition": "top",
+    "barPosition": "bottom",
     "taskbarAutoHide": true,
     "taskbarShowOnStart": true,
-    "taskbarHeightPx": 32,
-    "taskbarHideDelayMs": 2200,
+    "taskbarHeightPx": 42,
+    "taskbarHideDelayMs": 1800,
     "screensaverEnabled": true,
     "screensaverTimeoutMin": 5,
     "screensaverStyle": "clock"
@@ -1878,11 +1983,11 @@ MONOLITH_EOF
     "warning": null
   },
   "idleRamBudgetMb": {
-    "kernelAndSystemdMb": 148,
-    "niriWaylandMb": 52,
-    "waybarAndSwaybgMb": 38,
-    "hardwareServicesMb": 128,
-    "totalIdleMb": 366,
+    "kernelAndSystemdMb": 138,
+    "kwinWaylandMb": 112,
+    "plasmaShellMb": 114,
+    "hardwareServicesMb": 102,
+    "totalIdleMb": 466,
     "withinBudget": true
   },
   "exportPaths": {
@@ -1911,7 +2016,7 @@ MONOLITH_EOF
     "laptopAcpiSupport": true
   },
   "hotkeys": {
-    "toggleStatusBar": "Super + S",
+    "toggleStatusBar": "Super + Space",
     "closeWindow": "Super + Q",
     "expandWindow": "Super + F",
     "minimizeWindow": "Super + M",
@@ -1925,20 +2030,20 @@ MONOLITH_EOF
     "openLocalSend": "Super + L",
     "newProject": "Super + Alt + N",
     "triggerScreensaver": "Super + Shift + L",
-    "projectReset": "Super + Shift + BackSpace"
+    "projectReset": "Super + Shift + Backspace"
   },
   "customShortcuts": [
     {
-      "id": "custom-yazi",
-      "label": "Open Yazi TUI File Manager",
-      "command": "foot -T \"Yazi Files\" yazi",
+      "id": "custom-dolphin",
+      "label": "Open Dolphin Graphical File Manager",
+      "command": "dolphin",
       "modifier": "Super",
       "key": "E"
     },
     {
       "id": "custom-btop",
       "label": "Open btop RAM & CPU Monitor",
-      "command": "foot -T \"System Monitor\" btop",
+      "command": "konsole -e btop",
       "modifier": "Super",
       "key": "T"
     }
@@ -2071,18 +2176,30 @@ in
     jack.enable = true;
   };
 
-  # Dedicated Niri Wayland Compositor (Wayland already active on start)
-  programs.niri.enable = true;
+  # Optimized Graphical NixOS — KDE Plasma 6 Wayland (Rounded Menus, Native System Settings, Low RAM)
+  services.desktopManager.plasma6.enable = true;
+  services.displayManager.sddm = {
+    enable = true;
+    wayland.enable = true;
+  };
+  services.displayManager.defaultSession = "plasma";
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "dev";
+  };
+
+  # Strip bloated KDE apps for faster USB boot & smaller ISO
+  environment.plasma6.excludePackages = with pkgs.kdePackages; [
+    elisa
+    gwenview
+    okular
+    kate
+    khelpcenter
+  ];
+
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
-  };
-  xdg.portal = {
-    enable = true;
-    extraPortals = [
-      pkgs.xdg-desktop-portal-gtk
-      pkgs.xdg-desktop-portal-gnome
-    ];
   };
 
   programs.nix-ld = {
@@ -2100,39 +2217,6 @@ in
   };
 
   services.getty.autologinUser = lib.mkForce null;
-
-  # Direct Niri Wayland Session via tuigreet (boots straight into Niri Wayland)
-  services.greetd = {
-    enable = true;
-    settings = {
-      initial_session = {
-        user = "dev";
-        command = "/run/current-system/sw/bin/monolith-session-launch niri-session";
-      };
-      default_session = {
-        user = "greeter";
-        command = lib.concatStringsSep " " [
-          "${lib.getExe (pkgs.tuigreet or pkgs.greetd.tuigreet)}"
-          "--time"
-          "--remember"
-          "--asterisks"
-          "--greeting 'Monolith NixOS (Niri Wayland)  |  user: dev  |  pass: monolith'"
-          "--cmd '/run/current-system/sw/bin/monolith-session-launch niri-session'"
-          "--theme 'border=cyan;text=white;prompt=cyan;time=gray;action=cyan;button=cyan;container=black;input=white;title=cyan;greet=white'"
-        ];
-      };
-    };
-  };
-
-  systemd.services.greetd.serviceConfig = {
-    Type = "idle";
-    StandardInput = "tty";
-    StandardOutput = "tty";
-    StandardError = "journal";
-    TTYReset = true;
-    TTYVHangup = true;
-    TTYVTDisallocate = true;
-  };
 
   # Periodic Idle RAM Sweeper Timer (keeps idle memory strictly < 500 MB)
   systemd.services.monolith-ram-clean = {
@@ -2162,7 +2246,7 @@ in
   systemd.services.monolith-init-user = {
     description = "Monolith NixOS User Initialization, Hardware & Pendrive Persistence";
     after = [ "local-fs.target" "systemd-udev-settle.service" ];
-    before = [ "NetworkManager.service" "bluetooth.service" "greetd.service" ];
+    before = [ "NetworkManager.service" "bluetooth.service" "display-manager.service" ];
     wantedBy = [ "multi-user.target" ];
     path = with pkgs; [
       util-linux
@@ -2187,8 +2271,7 @@ in
     };
     script = ''
       dmesg -n 1 2>/dev/null || true
-      mkdir -p /var/cache/tuigreet /home/dev /etc/NetworkManager/system-connections /var/lib/bluetooth /etc/nixos /etc/monolith
-      chown -R greeter:greeter /var/cache/tuigreet 2>/dev/null || true
+      mkdir -p /home/dev /etc/NetworkManager/system-connections /var/lib/bluetooth /etc/nixos /etc/monolith
 
       udevadm settle --timeout=10 2>/dev/null || true
       ${monolithPersistUsb}/bin/monolith-persist-usb || true
@@ -2244,24 +2327,17 @@ in
     mise
     direnv
     nix-direnv
+    kdePackages.qttools
     bluez
     bluetui
     usbutils
-    udiskie
     wlr-randr
-    kanshi
-    waybar
-    swaybg
-    swayidle
-    fuzzel
-    foot
     yazi
     btop
     wl-clipboard
     grim
     slurp
     brightnessctl
-    polkit_gnome
     ripgrep
     fd
     jq
@@ -2287,8 +2363,7 @@ in
     monolithReset
     monolithPersistUsb
     monolithShortcutMenu
-    monolithToggleWindows
-    monolithSessionLaunch
+    monolithPlasmaInit
     monolithBluetooth
     monolithConfig
     monolithNewProject

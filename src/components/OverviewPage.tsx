@@ -14,7 +14,7 @@ import type { AppViewId, OSConfigState } from '../lib/types';
 interface OverviewPageProps {
   config: OSConfigState;
   onNavigate: (view: AppViewId) => void;
-  onLaunchLivePreset: (mode: 'first-boot' | 'desktop-niri') => void;
+  onLaunchLivePreset: (mode: 'first-boot' | 'desktop-plasma') => void;
   onDownloadZip: () => void;
   onSelectDrivePreset: (nominalDriveGb: number, totalUsableGb: number) => void;
 }
@@ -76,26 +76,26 @@ export function OverviewPage({
 
   const screenshots = [
     {
-      title: 'Niri Wayland on Start',
-      meta: 'Minimal wallpaper · Rounded transparent windows · Auto-hide taskbar · Zero GUI buttons',
+      title: 'Plasma 6 Wayland on Start',
+      meta: 'Native rounded menus · Graphical System Settings · Floating auto-hide taskbar · Zero GUI buttons',
       src: OS_VISUAL_ASSETS.niriTuiMinimal,
-      alt: 'Niri scrollable Wayland desktop on laptop with rounded transparent terminal windows, minimal mountain wallpaper, and auto-hiding taskbar',
-      cta: 'Open Live Niri Desktop',
-      action: () => onLaunchLivePreset('desktop-niri'),
+      alt: 'Optimized KDE Plasma 6 Wayland desktop with rounded translucent windows, minimal dark wallpaper, and floating auto-hiding panel',
+      cta: 'Open Live Plasma 6 Desktop',
+      action: () => onLaunchLivePreset('desktop-plasma'),
     },
     {
-      title: 'Pre-Desktop Setup + .exe Prompt',
+      title: 'First-Boot Setup + .exe Prompt',
       meta: 'Wi-Fi check first · Optional Wine Windows .exe support · Latest Nixpkgs',
       src: OS_VISUAL_ASSETS.firstBootTui,
-      alt: 'Monolith NixOS pre-desktop TUI first-boot wizard with internet setup and Windows .exe Wine selection',
+      alt: 'Monolith NixOS first-boot setup wizard with internet setup and Windows .exe Wine selection',
       cta: 'Run First-Boot Wizard',
       action: () => onLaunchLivePreset('first-boot'),
     },
     {
-      title: 'Scrollable Dev Workspace',
-      meta: `Close ${formatHotkeyCombo(config.hotkeys.closeWindow)} · Expand ${formatHotkeyCombo(config.hotkeys.expandWindow)} · Local RAM-only project pkgs`,
+      title: 'Unified Shortcuts & Local RAM Pkgs',
+      meta: `Close ${formatHotkeyCombo(config.hotkeys.closeWindow)} · Settings ${formatHotkeyCombo(config.hotkeys.openSettingsTui)} · Local RAM-only project pkgs`,
       src: OS_VISUAL_ASSETS.niriWorkspace,
-      alt: 'Niri scrollable tiling workspace with Neovim LSP and Minimal Firefox running in JetBrains Mono',
+      alt: 'Optimized Graphical NixOS workspace with Neovim LSP, Konsole, and System Settings in JetBrains Mono',
       cta: 'Customize in Settings',
       action: () => onNavigate('settings'),
     },
@@ -104,22 +104,22 @@ export function OverviewPage({
   const driverRows = [
     {
       component: 'USB-A, USB-C & Thunderbolt Ports',
-      packages: 'services.udisks2, services.hardware.bolt, udiskie, usbutils',
-      coverage: 'Instant USB drive hotplug automount, serial/MTP devices & Thunderbolt docks',
+      packages: 'services.udisks2, services.hardware.bolt, Plasma Device Notifier, usbutils',
+      coverage: 'Instant graphical & CLI USB automount, serial/MTP devices & Thunderbolt docks',
     },
     {
       component: 'HDMI & DisplayPort + Multi-Monitor',
-      packages: 'hardware.graphics, wlr-randr, kanshi, services.pipewire',
-      coverage: 'Plug-and-play HDMI/DP external displays, auto-profiles & HDMI audio routing',
+      packages: 'hardware.graphics, KWin Wayland, kscreen-doctor, services.pipewire',
+      coverage: 'Plug-and-play HDMI/DP external displays, graphical Display Settings & HDMI audio routing',
     },
     {
       component: 'Wi-Fi, Ethernet & Bluetooth',
-      packages: 'networkmanager (iwd), nmtui, bluez, bluetui, redistributable firmware',
+      packages: 'networkmanager (iwd), Plasma Network/BT trays, nmtui, bluez, bluetui',
       coverage: 'Universal Intel, Realtek, Broadcom, Qualcomm, MediaTek & persistent BT pairings',
     },
     {
-      component: 'Idle RAM (< 500 MB) & Optional .exe',
-      packages: 'zramSwap (zstd), earlyoom, monolith-ram-clean, optional wineWowPackages.stable',
+      component: 'Optimized RAM (< 500 MB) & Optional .exe',
+      packages: 'Baloo OFF, KDE bloat excluded, zramSwap, earlyoom, optional wineWowPackages.stable',
       coverage: `~${idleRam.totalIdleMb} MB idle footprint; local project pkgs mount in RAM on-demand & clear on idle`,
     },
   ];
@@ -161,7 +161,7 @@ export function OverviewPage({
         <div className="flex flex-col justify-between gap-8 lg:col-span-6 lg:py-2">
           <div className="space-y-6">
             <p className="font-mono text-xs tracking-wide" style={{ color: 'var(--os-muted)' }}>
-              {config.nixSystem.channel} · Latest Nix · Niri Wayland · JetBrains Mono
+              {config.nixSystem.channel} · Latest Nix · Optimized KDE Plasma 6 Wayland · JetBrains Mono
             </p>
 
             <h1
@@ -173,17 +173,18 @@ export function OverviewPage({
                 color: 'var(--os-fg)',
               }}
             >
-              Minimal Niri Wayland NixOS on any 32 GB+ USB drive.
+              Optimized Graphical NixOS on any 32 GB+ USB drive.
             </h1>
 
             <p className="max-w-[58ch] text-sm leading-relaxed" style={{ color: 'var(--os-muted)' }}>
-              Boots straight into a rounded, softly transparent Niri Wayland workspace with minimal
-              wallpaper, modifiable auto-hiding taskbar, keyboard-only window controls, and{' '}
+              Boots straight into an optimized KDE Plasma 6 Wayland desktop with native rounded
+              menus, real graphical System Settings, floating auto-hiding panel, unified working
+              shortcuts, zero window buttons, and{' '}
               <span className="font-mono tabular-nums" style={{ color: 'var(--os-fg)' }}>
                 ~{idleRam.totalIdleMb} MB
               </span>{' '}
-              idle RAM (under 500 MB). Global apps install with a single Nix command, while
-              per-project local packages load into RAM only when active and clear on idle.
+              idle RAM (Baloo off, bloat stripped, ZRAM active). Global apps install with a single
+              Nix command, while local project packages load into RAM only when needed.
             </p>
           </div>
 
@@ -191,14 +192,14 @@ export function OverviewPage({
             <div className="flex flex-wrap items-center gap-4">
               <button
                 type="button"
-                onClick={() => onLaunchLivePreset('desktop-niri')}
+                onClick={() => onLaunchLivePreset('desktop-plasma')}
                 className="os-control inline-flex min-h-[44px] items-center gap-2 whitespace-nowrap px-5 py-2.5 text-xs font-semibold transition-opacity duration-150 hover:opacity-90"
                 style={{
                   backgroundColor: 'var(--os-accent)',
                   color: 'var(--os-accent-fg)',
                 }}
               >
-                <span>Open Live Niri Desktop</span>
+                <span>Open Live Plasma 6 Desktop</span>
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </button>
 
@@ -396,7 +397,7 @@ export function OverviewPage({
                 {partitions.squashfsGb.toFixed(2)} GB · SquashFS
               </p>
               <p className="mt-0.5 text-xs" style={{ color: 'var(--os-muted)' }}>
-                {config.nixSystem.channel} Niri, drivers, TUIs
+                {config.nixSystem.channel} Plasma 6 Wayland, drivers, tools
               </p>
             </div>
             <div>
@@ -480,19 +481,20 @@ export function OverviewPage({
           >
             <div>
               <p className="font-mono text-[11px]" style={{ color: 'var(--os-muted)' }}>
-                01. Niri Scrollable Wayland + Auto-Hide Taskbar
+                01. Optimized KDE Plasma 6 Wayland + Rounded Menus
               </p>
               <h3 className="mt-2 font-display text-base font-semibold" style={{ color: 'var(--os-fg)' }}>
-                Wayland active on boot with zero GUI window buttons
+                Native graphical Settings, floating auto-hide panel &amp; zero window buttons
               </h3>
               <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--os-muted)' }}>
-                A single dedicated Niri Wayland stack with minimal dark wallpaper. Waybar starts visible
-                and auto-hides cleanly when idle. Minimize, expand, and close buttons are stripped
-                from every GUI — driven strictly by your custom shortcuts.
+                Auto-boots straight into KDE Plasma 6 Wayland with native rounded Breeze Dark menus,
+                real graphical System Settings (<code style={{ color: 'var(--os-fg)' }}>Super + ,</code>),
+                and one unified <code style={{ color: 'var(--os-fg)' }}>kglobalshortcutsrc</code> shortcut
+                table — no broken or duplicate menus. Window titlebar buttons stay stripped via KWin.
               </p>
             </div>
             <p className="mt-5 font-mono text-[11px]" style={{ color: 'var(--os-accent)' }}>
-              {formatHotkeyCombo(config.hotkeys.closeWindow)} Close · {formatHotkeyCombo(config.hotkeys.expandWindow)} Expand · {formatHotkeyCombo(config.hotkeys.minimizeWindow)} Minimize
+              {formatHotkeyCombo(config.hotkeys.closeWindow)} Close · {formatHotkeyCombo(config.hotkeys.openSettingsTui)} System Settings · {formatHotkeyCombo(config.hotkeys.shortcutSearch)} Shortcuts
             </p>
           </article>
 
@@ -597,8 +599,9 @@ export function OverviewPage({
             Interface showcase
           </h2>
           <p className="text-xs leading-relaxed" style={{ color: 'var(--os-muted)' }}>
-            Jump straight into the interactive Niri Wayland desktop preview, run the first-boot
-            installer with the Windows .exe prompt, or tune every visual token in Settings.
+            Jump straight into the interactive KDE Plasma 6 Wayland desktop preview with native
+            graphical System Settings, run the first-boot Windows .exe wizard, or tune every visual
+            token in Settings Studio.
           </p>
         </div>
 
@@ -741,7 +744,7 @@ export function OverviewPage({
         }}
       >
         <span className="font-display font-semibold" style={{ color: 'var(--os-fg)' }}>
-          Monolith NixOS · Niri Wayland
+          Monolith NixOS · Optimized Plasma 6 Wayland
         </span>
         <div className="flex flex-wrap items-center gap-6">
           <button type="button" onClick={() => onNavigate('live-os')} className="hover:underline">

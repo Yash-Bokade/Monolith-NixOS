@@ -72,16 +72,17 @@ export function SourceExplorer({
             className="font-display text-xl font-bold tracking-[-0.015em] md:text-2xl"
             style={{ color: 'var(--os-fg)' }}
           >
-            Niri-Only NixOS Flake &amp; GitHub Actions Pipeline
+            Optimized Graphical Plasma 6 NixOS Flake &amp; GitHub Actions
           </h1>
           <p className="mt-1.5 text-xs leading-relaxed" style={{ color: 'var(--os-muted)' }}>
             {files.length} self-contained declarative files pinned to{' '}
             <code className="font-mono" style={{ color: 'var(--os-fg)' }}>
               {config.nixSystem.channel}
             </code>{' '}
-            with latest Nix, Niri Wayland, JetBrains Mono, minimal wallpaper, rounded transparent
-            windows, auto-hiding Waybar, RAM sweeper, USB/HDMI/Wi-Fi/Bluetooth, and optional Wine
-            .exe support — all synced live with your Settings.
+            with latest Nix, optimized KDE Plasma 6 Wayland, native rounded menus &amp; System
+            Settings, unified <code className="font-mono">kglobalshortcutsrc</code> shortcuts,
+            JetBrains Mono, floating auto-hide panel, Baloo disabled, ZRAM, USB/HDMI/Wi-Fi/Bluetooth,
+            and optional Wine .exe support — all synced live with your Settings.
           </p>
         </div>
 
@@ -248,7 +249,7 @@ export function SourceExplorer({
 cd monolith-nixos-source
 git init -b main
 git add .
-git commit -m "Monolith NixOS Niri Wayland Flake ISO"
+git commit -m "Monolith NixOS Optimized Plasma 6 Wayland Flake ISO"
 
 # 2. Push to GitHub — build-nixos.yml builds & publishes your ISO automatically
 git remote add origin https://github.com/<your-username>/monolith-nixos.git

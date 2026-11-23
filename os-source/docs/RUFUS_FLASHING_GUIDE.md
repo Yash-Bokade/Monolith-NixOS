@@ -27,4 +27,4 @@ Flash `monolith-nixos-*.iso` onto any **32 GB, 64 GB, 128 GB, 256 GB, 512 GB, or
 
 1. Disable **Secure Boot** once in UEFI/BIOS settings.
 2. Open your machine's Boot Menu (`F12` Dell/Lenovo/Acer, `F9` HP, `F8` ASUS, `F10` Samsung, `F11` MSI).
-3. Select your **UEFI USB Drive** — Niri Wayland launches automatically (default user: **`dev`**, password: **`monolith`**).
+3. Select your **UEFI USB Drive** — Optimized KDE Plasma 6 Wayland launches automatically (default user: **`dev`**, password: **`monolith`**).

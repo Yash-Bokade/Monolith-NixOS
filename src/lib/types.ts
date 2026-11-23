@@ -6,7 +6,7 @@ export type OSThemeId =
   | 'nordic-frost'
   | 'warm-ash';
 
-export type CompositorId = 'niri';
+export type CompositorId = 'plasma6';
 
 export type WallpaperPresetId =
   | 'obsidian-horizon'
@@ -174,8 +174,8 @@ export interface HotkeyConflict {
 
 export interface IdleRamBreakdown {
   kernelAndSystemdMb: number;
-  niriWaylandMb: number;
-  waybarAndSwaybgMb: number;
+  kwinWaylandMb: number;
+  plasmaShellMb: number;
   hardwareServicesMb: number;
   totalIdleMb: number;
   withinBudget: boolean;
@@ -210,7 +210,7 @@ export type DesktopWindowId =
   | 'localsend'
   | 'terminal'
   | 'hardware'
-  | 'settings-tui';
+  | 'system-settings';
 
 export interface ThemePalette {
   id: OSThemeId;
